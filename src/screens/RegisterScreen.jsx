@@ -73,12 +73,13 @@ export default function RegisterScreen({ navigation }) {
     return ok
   }
 
-  async function handleRegister() {
-    setAuthError('')
-    if (!validateAll()) return
-    const ok = await register(nome.trim(), email.trim(), pass)
-    if (ok) navigation.replace('Welcome')
-  }
+async function handleRegister() {
+  setAuthError('')
+  if (!validateAll()) return
+  
+  // Remova a linha do navigation.replace daqui também
+  await register(nome.trim(), email.trim(), pass)
+}
 
   return (
     <SafeAreaView style={styles.safe}>

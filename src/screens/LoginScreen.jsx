@@ -25,18 +25,19 @@ export default function LoginScreen({ navigation }) {
     return ''
   }
 
-  async function handleLogin() {
-    const eErr = validateEmail(email)
-    setEmailErr(eErr)
-    if (eErr) return
+async function handleLogin() {
+  const eErr = validateEmail(email)
+  setEmailErr(eErr)
+  if (eErr) return
 
-    if (!pass) { setPassErr('Senha obrigatória'); return }
-    setPassErr('')
-    setAuthError('')
+  if (!pass) { setPassErr('Senha obrigatória'); return }
+  setPassErr('')
+  setAuthError('')
 
-    const ok = await login(email, pass)
-    if (ok) navigation.replace('Welcome')
-  }
+  // Apenas espere a função terminar. Se der 'ok', o contexto muda o estado
+  // e o AppNavigator te joga para a tela correta automaticamente!
+  await login(email, pass)
+}
 
   function goToRegister() {
     setAuthError('')

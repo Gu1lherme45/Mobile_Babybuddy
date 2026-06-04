@@ -1,22 +1,22 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 import { API_URL } from '../config'
 
-// Wrapper: no browser usa localStorage, no celular usa SecureStore
+// Wrapper CORRIGIDO: impede o loop infinito usando os métodos certos do Expo no Mobile
 const SecureStorage = {
   async getItem(key) {
     if (Platform.OS === 'web') return localStorage.getItem(key)
-    return await SecureStorage.getItem(key)
+    return await SecureStore.getItemAsync(key) 
   },
   async setItem(key, value) {
     if (Platform.OS === 'web') { localStorage.setItem(key, value); return }
-    await SecureStorage.setItem(key, value)
+    await SecureStore.setItemAsync(key, value)
   },
   async deleteItem(key) {
     if (Platform.OS === 'web') { localStorage.removeItem(key); return }
-    await SecureStorage.deleteItem(key)
+    await SecureStore.deleteItemAsync(key)
   },
 }
 
@@ -122,10 +122,12 @@ export function AppProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, username: email, password, nivelAcesso: 'Gestante' }),
       })
+      
       if (!r.ok) {
         const msg = await r.text().catch(() => '')
         throw new Error(msg || 'Erro ao cadastrar')
       }
+      
       return await login(email, password)
     } catch (err) {
       setAuthError(err.message || 'Erro ao criar conta. Tente novamente.')
@@ -163,7 +165,6 @@ export function AppProvider({ children }) {
       body: JSON.stringify({ senha: newPassword }),
     }, credentials)
     if (!r.ok) throw new Error('Erro ao trocar senha')
-    // Update stored password
     await SecureStorage.setItem('bb_password', newPassword)
     setCredentials(prev => ({ ...prev, password: newPassword }))
   }
