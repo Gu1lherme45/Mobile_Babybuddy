@@ -1,0 +1,5 @@
+export { default as autenticarUsuario } from './autenticarUsuario'
+export { default as cadastrarUsuario } from './cadastrarUsuario'
+export { default as obterUsuarioAtual } from './obterUsuarioAtual'
+export { default as trocarSenha } from './trocarSenha'
+export { default as excluirConta } from './excluirConta'
