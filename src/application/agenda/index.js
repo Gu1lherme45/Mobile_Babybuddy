@@ -1,0 +1,5 @@
+export { default as listarTiposEvento } from './listarTiposEvento'
+export { default as resolverTipoEventoId } from './resolverTipoEventoId'
+export { default as registrarCompromisso } from './registrarCompromisso'
+export { default as listarCompromissos } from './listarCompromissos'
+export { default as removerCompromisso } from './removerCompromisso'

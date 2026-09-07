@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm view *)",
+      "Bash(npx jest *)",
+      "Bash(npm ls *)",
+      "Bash(node -e \"const m = require\\('react-native/Libraries/BatchedBridge/NativeModules'\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/expo/package.json'\\).dependencies\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/expo/package.json'\\); console.log\\(p.peerDependencies\\)\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const l = require\\('@testing-library/react-native'\\); console.log\\(Object.keys\\(l\\)\\)\")",
+      "Bash(node --experimental-vm-modules -e ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/materiais --max-time 3)"
+    ]
+  }
+}

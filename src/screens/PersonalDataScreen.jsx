@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform,
@@ -7,9 +7,11 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
 import { Icon } from '../components/Icon'
+import { obterGestanteDoUsuario, registrarOuAtualizarGestante } from '../application/gestante'
 
 const FIELDS = [
   { key: 'name',      label: 'SEU NOME',             placeholder: 'Como você se chama?',    keyboard: 'default' },
+  { key: 'birthDate', label: 'DATA DE NASCIMENTO (AAAA-MM-DD)', placeholder: 'Ex: 1998-01-10', keyboard: 'numbers-and-punctuation' },
   { key: 'weeks',     label: 'SEMANAS DE GESTAÇÃO',   placeholder: 'Ex: 24',                 keyboard: 'numeric' },
   { key: 'due',       label: 'DATA PREVISTA (AAAA-MM-DD)', placeholder: 'Ex: 2026-10-15',    keyboard: 'numbers-and-punctuation' },
   { key: 'doctor',    label: 'MÉDICO/A',              placeholder: 'Nome do/a médico/a',      keyboard: 'default' },
@@ -21,13 +23,40 @@ const FIELDS = [
 ]
 
 export default function PersonalDataScreen({ navigation }) {
-  const { profile, setProfile } = useApp()
+  const { currentUser, profile, setProfile } = useApp()
   const [form, setForm] = useState({ ...profile })
   const [saved, setSaved] = useState(false)
+  const [gestanteId, setGestanteId] = useState(null)
+
+  // Se já existe um cadastro de Gestante para este usuário no backend, usa o
+  // tipo sanguíneo/data de nascimento de lá em vez do que sobrou no AsyncStorage local.
+  useEffect(() => {
+    if (!currentUser?.id) return
+    let ativo = true
+    obterGestanteDoUsuario(currentUser.id)
+      .then(gestante => {
+        if (!ativo || !gestante) return
+        setGestanteId(gestante.id)
+        setForm(prev => ({
+          ...prev,
+          blood: gestante.blood || prev.blood,
+          birthDate: gestante.birthDate || prev.birthDate,
+        }))
+      })
+      .catch(() => {})
+    return () => { ativo = false }
+  }, [currentUser?.id])
 
   function handleSave() {
     setProfile(form)
     setSaved(true)
+    // Persiste no backend só quando os campos obrigatórios de Gestante estão
+    // preenchidos; não bloqueia o "Salvo!" local, que continua imediato.
+    if (currentUser?.id && form.blood && form.birthDate) {
+      registrarOuAtualizarGestante(currentUser.id, gestanteId, form)
+        .then(gestante => setGestanteId(gestante.id))
+        .catch(() => {})
+    }
     setTimeout(() => navigation.goBack(), 600)
   }
 

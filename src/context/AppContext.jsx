@@ -1,40 +1,18 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import * as SecureStore from 'expo-secure-store'
-import { Platform } from 'react-native'
-import { API_URL } from '../config'
-
-// Wrapper CORRIGIDO: impede o loop infinito usando os métodos certos do Expo no Mobile
-const SecureStorage = {
-  async getItem(key) {
-    if (Platform.OS === 'web') return localStorage.getItem(key)
-    return await SecureStore.getItemAsync(key) 
-  },
-  async setItem(key, value) {
-    if (Platform.OS === 'web') { localStorage.setItem(key, value); return }
-    await SecureStore.setItemAsync(key, value)
-  },
-  async deleteItem(key) {
-    if (Platform.OS === 'web') { localStorage.removeItem(key); return }
-    await SecureStore.deleteItemAsync(key)
-  },
-}
+import SecureStorage from '../infrastructure/storage/SecureStorage'
+import { clearCredentials } from '../infrastructure/http/credentialsStore'
+import { setUnauthorizedHandler } from '../infrastructure/http/unauthorizedHandler'
+import {
+  autenticarUsuario,
+  cadastrarUsuario,
+  obterUsuarioAtual,
+  trocarSenha as trocarSenhaUseCase,
+  excluirConta as excluirContaUseCase,
+} from '../application/auth'
+import { registrarCompromisso, removerCompromisso } from '../application/agenda'
 
 const AppContext = createContext(null)
-
-function basicAuth(email, password) {
-  const encoded = btoa(`${email}:${password}`)
-  return `Basic ${encoded}`
-}
-
-async function apiFetch(path, options = {}, credentials = null) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
-  if (credentials) {
-    headers['Authorization'] = basicAuth(credentials.email, credentials.password)
-  }
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers })
-  return response
-}
 
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
@@ -50,21 +28,17 @@ export function AppProvider({ children }) {
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [calYear, setCalYear] = useState(new Date().getFullYear())
 
-  // Restaura credenciais salvas ao abrir o app
+  // Restaura sessão salva ao abrir o app
   useEffect(() => {
     async function restore() {
       try {
         const email = await SecureStorage.getItem('bb_email')
         const password = await SecureStorage.getItem('bb_password')
         if (email && password) {
-          const creds = { email, password }
-          const r = await apiFetch('/api/usuarios/me', {}, creds)
-          if (r.ok) {
-            const me = await r.json()
-            setCurrentUser({ id: me.id, nome: me.nome, email: me.username })
-            setCredentials(creds)
-            await loadUserData(me.username)
-          }
+          const usuario = await obterUsuarioAtual(email, password)
+          setCurrentUser(usuario)
+          setCredentials({ email, password })
+          await loadUserData(usuario)
         }
       } catch (_) {}
       setAuthLoading(false)
@@ -72,17 +46,28 @@ export function AppProvider({ children }) {
     restore()
   }, [])
 
-  async function loadUserData(email) {
+  // Sessão expirada/senha trocada em outro dispositivo/conta excluída: qualquer
+  // chamada autenticada que volte 401 desloga automaticamente (ver apiClient).
+  useEffect(() => {
+    setUnauthorizedHandler(() => logout())
+    return () => setUnauthorizedHandler(null)
+  }, [])
+
+  async function loadUserData(usuario) {
     try {
       const keys = ['profile', 'reminders', 'events', 'remFilter', 'calMonth', 'calYear']
-      const pairs = await AsyncStorage.multiGet(keys.map(k => `${email}_${k}`))
-      const data = Object.fromEntries(pairs.map(([k, v]) => [k.replace(`${email}_`, ''), v ? JSON.parse(v) : null]))
+      const pairs = await AsyncStorage.multiGet(keys.map(k => `${usuario.email}_${k}`))
+      const data = Object.fromEntries(pairs.map(([k, v]) => [k.replace(`${usuario.email}_`, ''), v ? JSON.parse(v) : null]))
       if (data.profile) setProfileRaw(data.profile)
       if (data.reminders) setReminders(data.reminders)
       if (data.events) setEvents(data.events)
       if (data.remFilter) setRemFilter(data.remFilter)
       if (data.calMonth !== null && data.calMonth !== undefined) setCalMonth(data.calMonth)
       if (data.calYear) setCalYear(data.calYear)
+      // Autocura: itens locais criados antes de existir sincronização (ou offline
+      // na hora) ainda não têm remoteId — tenta persistir agora, sem bloquear o boot.
+      ;(data.reminders || []).filter(r => !r.remoteId).forEach(r => syncLembreteComBackend(usuario.id, r))
+      ;(data.events || []).filter(e => !e.remoteId).forEach(e => syncEventoComBackend(usuario.id, e))
     } catch (_) {}
   }
 
@@ -91,19 +76,43 @@ export function AppProvider({ children }) {
     await AsyncStorage.setItem(`${currentUser.email}_${key}`, JSON.stringify(value))
   }
 
+  function syncLembreteComBackend(usuarioId, reminder) {
+    registrarCompromisso(usuarioId, reminder, reminder.cat)
+      .then(compromisso => {
+        if (!compromisso) return
+        setReminders(prev => {
+          const next = prev.map(item => item.id === reminder.id ? { ...item, remoteId: compromisso.id } : item)
+          saveItem('reminders', next)
+          return next
+        })
+      })
+      .catch(() => {})
+  }
+
+  function syncEventoComBackend(usuarioId, event) {
+    // AddEventScreen não tem seletor de categoria — usa "Outro" como tipo padrão no backend.
+    registrarCompromisso(usuarioId, event, 'Outro')
+      .then(compromisso => {
+        if (!compromisso) return
+        setEvents(prev => {
+          const next = prev.map(item => item.id === event.id ? { ...item, remoteId: compromisso.id } : item)
+          saveItem('events', next)
+          return next
+        })
+      })
+      .catch(() => {})
+  }
+
   async function login(email, password) {
     setAuthLoading(true)
     setAuthError('')
     try {
-      const creds = { email, password }
-      const r = await apiFetch('/api/usuarios/me', {}, creds)
-      if (!r.ok) throw new Error('Usuário ou senha inválidos')
-      const me = await r.json()
+      const usuario = await autenticarUsuario(email, password)
       await SecureStorage.setItem('bb_email', email)
       await SecureStorage.setItem('bb_password', password)
-      setCurrentUser({ id: me.id, nome: me.nome, email: me.username })
-      setCredentials(creds)
-      await loadUserData(me.username)
+      setCurrentUser(usuario)
+      setCredentials({ email, password })
+      await loadUserData(usuario)
       return true
     } catch (err) {
       setAuthError(err.message || 'Usuário ou senha inválidos')
@@ -117,17 +126,7 @@ export function AppProvider({ children }) {
     setAuthLoading(true)
     setAuthError('')
     try {
-      const r = await fetch(`${API_URL}/api/usuarios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, username: email, password, nivelAcesso: 'Gestante' }),
-      })
-      
-      if (!r.ok) {
-        const msg = await r.text().catch(() => '')
-        throw new Error(msg || 'Erro ao cadastrar')
-      }
-      
+      await cadastrarUsuario(nome, email, password)
       return await login(email, password)
     } catch (err) {
       setAuthError(err.message || 'Erro ao criar conta. Tente novamente.')
@@ -140,6 +139,7 @@ export function AppProvider({ children }) {
   async function logout() {
     await SecureStorage.deleteItem('bb_email').catch(() => {})
     await SecureStorage.deleteItem('bb_password').catch(() => {})
+    clearCredentials()
     setCurrentUser(null)
     setCredentials(null)
     setProfileRaw({ name: '', weeks: '', due: '', doctor: '', hospital: '', weight: '', height: '', blood: '', allergies: '' })
@@ -152,19 +152,13 @@ export function AppProvider({ children }) {
   }
 
   async function deleteCurrentAccount() {
-    if (currentUser?.id) {
-      await apiFetch(`/api/usuarios/${currentUser.id}`, { method: 'DELETE' }, credentials).catch(() => {})
-    }
+    await excluirContaUseCase(currentUser?.id)
     await logout()
   }
 
   async function changePassword(newPassword) {
     if (!currentUser?.id) throw new Error('Não autenticado')
-    const r = await apiFetch(`/api/usuarios/${currentUser.id}/senha`, {
-      method: 'PATCH',
-      body: JSON.stringify({ senha: newPassword }),
-    }, credentials)
-    if (!r.ok) throw new Error('Erro ao trocar senha')
+    await trocarSenhaUseCase(currentUser.id, currentUser.email, newPassword)
     await SecureStorage.setItem('bb_password', newPassword)
     setCredentials(prev => ({ ...prev, password: newPassword }))
   }
@@ -180,11 +174,14 @@ export function AppProvider({ children }) {
       saveItem('reminders', next)
       return next
     })
+    if (currentUser?.id) syncLembreteComBackend(currentUser.id, r)
   }
   function deleteReminder(id) {
     setReminders(prev => {
+      const removido = prev.find(r => r.id === id)
       const next = prev.filter(r => r.id !== id)
       saveItem('reminders', next)
+      removerCompromisso(removido?.remoteId)
       return next
     })
   }
@@ -202,11 +199,14 @@ export function AppProvider({ children }) {
       saveItem('events', next)
       return next
     })
+    if (currentUser?.id) syncEventoComBackend(currentUser.id, e)
   }
   function deleteEvent(id) {
     setEvents(prev => {
+      const removido = prev.find(e => e.id === id)
       const next = prev.filter(e => e.id !== id)
       saveItem('events', next)
+      removerCompromisso(removido?.remoteId)
       return next
     })
   }
