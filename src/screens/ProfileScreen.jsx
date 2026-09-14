@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
@@ -20,6 +20,11 @@ export default function ProfileScreen({ navigation }) {
   const { currentUser, logout } = useApp()
 
   function handleLogout() {
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm('Tem certeza que deseja sair?')) logout()
+      return
+    }
+
     Alert.alert('Sair', 'Tem certeza que deseja sair?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: logout },
