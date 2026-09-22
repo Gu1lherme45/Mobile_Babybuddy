@@ -20,6 +20,8 @@ import NotificationsScreen from '../screens/NotificationsScreen'
 import DeleteAccountScreen from '../screens/DeleteAccountScreen'
 import PrivacyScreen from '../screens/PrivacyScreen'
 import TermsScreen from '../screens/TermsScreen'
+import MaterialsScreen from '../screens/MaterialsScreen'
+import MaterialDetailScreen from '../screens/MaterialDetailScreen'
 
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
@@ -85,6 +87,8 @@ function AppNavigator() {
             <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="Terms" component={TermsScreen} options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="Materials" component={MaterialsScreen} options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="MaterialDetail" component={MaterialDetailScreen} options={{ animation: 'slide_from_right' }} />
           </>
         )}
       </Stack.Navigator>

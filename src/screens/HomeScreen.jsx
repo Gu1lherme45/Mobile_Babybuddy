@@ -21,6 +21,7 @@ export default function HomeScreen({ navigation }) {
     { ic: 'bell',  lb: 'Novo Lembrete', screen: 'AddReminder', colors: ['#FF6FAD', '#FFB7CD'] },
     { ic: 'user',  lb: 'Meus Dados',    screen: 'PersonalData',colors: ['#C0255B', '#EC407A'] },
     { ic: 'clock', lb: 'Calendário',    screen: null,          colors: ['#F48FB1', '#EC407A'] },
+    { ic: 'file',  lb: 'Artigos',        screen: 'Materials',   colors: ['#B62561', '#F06292'] },
   ]
 
   return (
