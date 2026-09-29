@@ -1,11 +1,12 @@
 import { Platform } from 'react-native'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
-import { loadArticleFile, pdfName, saveArticleFile, shareArticleFile } from './articleFile'
+import { loadArticleFile, pdfName, releaseArticleFile, saveArticleFile, shareArticleFile } from './articleFile'
 
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/', EncodingType: { Base64: 'base64' },
   makeDirectoryAsync: jest.fn(), downloadAsync: jest.fn(), readAsStringAsync: jest.fn(),
+  readDirectoryAsync: jest.fn().mockResolvedValue([]),
   deleteAsync: jest.fn().mockResolvedValue(), writeAsStringAsync: jest.fn(),
   StorageAccessFramework: { requestDirectoryPermissionsAsync: jest.fn(), createFileAsync: jest.fn() },
 }))
@@ -42,4 +43,20 @@ it('compartilha o arquivo local como PDF, sem enviar o link da API', async () =>
   Sharing.isAvailableAsync.mockResolvedValue(true)
   await shareArticleFile({ uri: 'file:///artigo.pdf' }, material)
   expect(Sharing.shareAsync).toHaveBeenCalledWith('file:///artigo.pdf', expect.objectContaining({ mimeType: 'application/pdf' }))
+})
+
+it('mantém o anexo compartilhado disponível para o aplicativo destinatário', async () => {
+  Sharing.isAvailableAsync.mockResolvedValue(true)
+  const file = { uri: 'file:///artigo.pdf' }
+  await shareArticleFile(file, material)
+  await releaseArticleFile(file)
+  expect(FileSystem.deleteAsync).not.toHaveBeenCalled()
+})
+
+it('remove do cache anexos compartilhados há mais de 24 horas', async () => {
+  FileSystem.readDirectoryAsync.mockResolvedValue(['1-antigo.pdf', `${Date.now()}-atual.pdf`])
+  FileSystem.downloadAsync.mockResolvedValue({ status: 200 })
+  FileSystem.readAsStringAsync.mockResolvedValue('JVBERi0=')
+  await loadArticleFile(material)
+  expect(FileSystem.deleteAsync).toHaveBeenCalledWith('file:///cache/articles/1-antigo.pdf', { idempotent: true })
 })

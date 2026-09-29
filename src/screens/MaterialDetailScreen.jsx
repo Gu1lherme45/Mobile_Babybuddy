@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Icon } from '../components/Icon'
 import { obterMaterial } from '../application/material'
 import ArticlePdf from '../components/ArticlePdf'
-import { loadArticleFile, releaseArticleFile, saveArticleFile, shareArticleFile } from '../infrastructure/material/articleFile'
+import ArticleHtml from '../components/ArticleHtml'
+import { loadArticleHtml } from '../components/articleDocument'
+import { saveArticleFile, shareArticleFile } from '../infrastructure/material/articleFile'
+import { createArticleFileSession } from '../infrastructure/material/articleFileSession'
 
 export default function MaterialDetailScreen({ route, navigation }) {
   const [material, setMaterial] = useState(null)
@@ -15,6 +18,10 @@ export default function MaterialDetailScreen({ route, navigation }) {
   const [pdfError, setPdfError] = useState('')
   const [busy, setBusy] = useState('')
   const [retry, setRetry] = useState(0)
+  const [html, setHtml] = useState('')
+  const [prepared, setPrepared] = useState(false)
+  const sessionRef = useRef(null)
+  const actionRef = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -23,20 +30,28 @@ export default function MaterialDetailScreen({ route, navigation }) {
     setError('')
     obterMaterial(route.params.materialId).then(value => { if (active) setMaterial(value) }).catch(() => { if (active) setError('Este artigo não está disponível.') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [route.params.materialId])
+  }, [route.params.materialId, retry])
 
   useEffect(() => {
     let active = true
-    let loadedFile
+    const abort = new AbortController()
+    const session = material?.pdfUrl ? createArticleFileSession(material) : null
+    sessionRef.current = session
     setFile(null)
+    setHtml('')
+    setPrepared(false)
     setPdfError('')
-    if (material?.pdfUrl) loadArticleFile(material).then(value => {
-      loadedFile = value
-      if (active) setFile(value)
-      else releaseArticleFile(value)
-    }).catch(() => { if (active) setPdfError('Não foi possível carregar o PDF. Verifique sua conexão e tente novamente.') })
-    return () => { active = false; releaseArticleFile(loadedFile) }
-  }, [material, retry])
+    if (material?.contentUrl) {
+      const isPdf = material.contentType === 'application/pdf'
+      const task = isPdf && session ? session.get() : loadArticleHtml(material.contentUrl, abort.signal)
+      task.then(value => {
+        if (!active) return
+        if (isPdf) { setFile(value); setPrepared(true) }
+        else setHtml(value)
+      }).catch(() => { if (active) setPdfError('Não foi possível carregar o artigo. Verifique sua conexão e tente novamente.') })
+    }
+    return () => { active = false; abort.abort(); session?.dispose(); if (sessionRef.current === session) sessionRef.current = null }
+  }, [material])
 
   function notify(message) {
     if (Platform.OS === 'web') globalThis.alert(message)
@@ -44,15 +59,27 @@ export default function MaterialDetailScreen({ route, navigation }) {
   }
 
   async function handleAction(action) {
-    if (!file || busy) return
+    const session = sessionRef.current
+    if (!session || actionRef.current) return
+    actionRef.current = true
     setBusy(action)
     try {
-      if (action === 'download') {
-        if (await saveArticleFile(file, material)) notify('PDF salvo com sucesso.')
-      } else await shareArticleFile(file, material)
+      await session.use(async pdf => {
+        if (sessionRef.current !== session) return
+        setPrepared(true)
+        // Web Share needs a fresh user gesture after an asynchronous download.
+        if (action === 'share' && Platform.OS === 'web' && !prepared) {
+          notify('PDF preparado. Toque novamente em Compartilhar no WhatsApp.')
+          return
+        }
+        if (action === 'download') {
+          if (await saveArticleFile(pdf, material)) notify(Platform.OS === 'web' ? 'Download do PDF iniciado.' : 'PDF salvo com sucesso.')
+        } else await shareArticleFile(pdf, material)
+      })
     } catch (error) {
-      if (error.name !== 'AbortError') notify(error.message || 'Não foi possível concluir a ação. Tente novamente.')
+      if (sessionRef.current === session && error.name !== 'AbortError') notify(error.message || 'Não foi possível concluir a ação. Tente novamente.')
     } finally {
+      actionRef.current = false
       setBusy('')
     }
   }
@@ -61,7 +88,7 @@ export default function MaterialDetailScreen({ route, navigation }) {
 
   return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.content}>
     <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()} accessibilityLabel="Voltar aos artigos"><Icon name="back" color="#9B315F" size={20} /><Text style={styles.backText}>Artigos</Text></TouchableOpacity>
-    {error || !material ? <View style={styles.state}><Icon name="warn" color="#EC407A" size={34} /><Text style={styles.title}>Artigo indisponível</Text><Text style={styles.description}>{error}</Text></View>
+    {error || !material ? <View style={styles.state}><Icon name="warn" color="#EC407A" size={34} /><Text style={styles.title}>Artigo indisponível</Text><Text style={styles.description}>{error}</Text><TouchableOpacity onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.backText}>Tentar novamente</Text></TouchableOpacity></View>
       : <>{material.coverUrl ? <Image source={{ uri: material.coverUrl }} style={styles.cover} resizeMode="cover" accessibilityLabel={`Capa de ${material.title}`} />
         : <LinearGradient colors={['#FFF0F6', '#F9D8E5']} style={[styles.cover, styles.placeholder]}><Icon name="file" color="#EC407A" size={46} /></LinearGradient>}
         <Text style={styles.category}>{material.category.toUpperCase()}</Text><Text style={styles.title}>{material.title}</Text>
@@ -69,16 +96,20 @@ export default function MaterialDetailScreen({ route, navigation }) {
         <Text style={styles.description}>{material.description}</Text>
         {material.pdfUrl ? <>
           <View style={styles.actions}>
-            <TouchableOpacity style={[styles.button, (!file || busy) && styles.disabled]} disabled={!file || !!busy} onPress={() => handleAction('download')} accessibilityRole="button"><Text style={styles.buttonText}>{busy === 'download' ? 'Salvando…' : 'Baixar PDF'}</Text></TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.shareButton, (!file || busy) && styles.disabled]} disabled={!file || !!busy} onPress={() => handleAction('share')} accessibilityRole="button"><Text style={styles.buttonText}>{busy === 'share' ? 'Compartilhando…' : 'Compartilhar no WhatsApp'}</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.button, busy && styles.disabled]} disabled={!!busy} onPress={() => handleAction('download')} accessibilityRole="button"><Text style={styles.buttonText}>{busy === 'download' ? 'Preparando PDF…' : 'Baixar PDF'}</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.shareButton, busy && styles.disabled]} disabled={!!busy} onPress={() => handleAction('share')} accessibilityRole="button"><Text style={styles.buttonText}>{busy === 'share' ? 'Preparando compartilhamento…' : 'Compartilhar no WhatsApp'}</Text></TouchableOpacity>
           </View>
           <Text style={styles.stateText}>Para enviar o PDF, selecione o WhatsApp no menu de compartilhamento.</Text>
-          <View style={styles.reader}>{file ? <ArticlePdf file={file} /> : pdfError ? <View style={styles.notice}><Text style={styles.stateText} accessibilityRole="alert">{pdfError}</Text><TouchableOpacity style={styles.back} onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.backText}>Tentar novamente</Text></TouchableOpacity></View> : <View style={styles.notice}><ActivityIndicator color="#EC407A" /><Text style={styles.stateText}>Carregando artigo…</Text></View>}</View>
-        </> : <View style={styles.notice}><Text style={styles.noticeTitle}>PDF ainda não publicado</Text><Text style={styles.stateText}>O artigo completo ficará disponível aqui quando o PDF for publicado.</Text></View>}</>}
+        </> : <View style={styles.notice}><Text style={styles.noticeTitle}>PDF ainda não publicado</Text><Text style={styles.stateText}>O download ficará disponível quando o PDF for publicado.</Text></View>}
+        <View style={styles.reader}>{pdfError ? <View style={styles.notice}><Text style={styles.stateText} accessibilityRole="alert">{pdfError}</Text><TouchableOpacity style={styles.back} onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.backText}>Tentar novamente</Text></TouchableOpacity></View>
+          : html ? <ArticleHtml html={html} onError={() => setPdfError('Não foi possível exibir o artigo. Tente novamente.')} />
+          : file ? <ArticlePdf file={file} />
+          : material.contentUrl ? <View style={styles.notice}><ActivityIndicator color="#EC407A" /><Text style={styles.stateText}>Carregando artigo…</Text></View>
+          : <Text style={styles.stateText}>Conteúdo ainda não publicado.</Text>}</View></>}
   </ScrollView></SafeAreaView>
 }
 
-function formatDate(value) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value)) }
+function formatDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date) }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFF' }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF5F8' }, content: { padding: 18, paddingBottom: 40 },
