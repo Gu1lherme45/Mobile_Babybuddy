@@ -3,6 +3,8 @@
 > Este documento é o prompt de execução passo a passo para conectar as telas já existentes do `Mobile_Babybuddy` (Expo/React Native) às rotas reais do backend (`Backend_Babybuddy`, `http://localhost:8080` — ver `Backend_Babybuddy/docs/api-rotas.md`). Segue a mesma filosofia e o mesmo nível de rigor do plano já executado em `Web_Babybuddy/docs/plano-integracao-api-2026-08-13.md`, adaptado para as particularidades de Mobile First / Native / Expo. Cada Sprint é executada e entregue de forma independente, na ordem apresentada, e só é considerada concluída quando o checklist de "não fazer" e os testes da sprint estiverem 100% verdes.
 >
 > **Antes de escrever qualquer código:** ler a documentação versionada do Expo em uso neste projeto — `https://docs.expo.dev/versions/v56.0.0/` (Expo mudou; ver `AGENTS.md`) — para confirmar APIs (SecureStore, AsyncStorage, NetInfo, etc.) antes de usá-las.
+>
+> **Atualização (2026-09-29):** o projeto passou para o SDK 57 e a referência versionada agora é `https://docs.expo.dev/versions/v57.0.0/` (ver a seção final deste documento). As menções a `v56.0.0` abaixo descrevem a execução original do plano, em agosto de 2026.
 
 ## Diagnóstico do estado atual (2026-08-14)
 
@@ -23,7 +25,7 @@ O app já fala com o backend, mas de forma monolítica e sem camadas:
 5. **Clean Code + DDD + SOLID.** Separar `domain/` (entidades/tipos), `application/` (casos de uso) e `infrastructure/` (`axios`, repositórios, storage) da camada de apresentação (`screens/`, `context/AppContext.jsx` vira um adaptador fino que delega para `application/`).
 6. **Nenhuma credencial em texto puro fora do `expo-secure-store`/`SecureStorage` já existente.** `AsyncStorage` nunca guarda senha ou token — só dados de app (perfil, lembretes, metadados locais).
 7. **Toda função nova em `application/` e `infrastructure/` tem teste unitário.** Ver stack de testes abaixo.
-8. **Mobile First / Native / Expo:** qualquer API nova usada (armazenamento, rede, notificações) deve ser conferida contra `https://docs.expo.dev/versions/v56.0.0/` antes de usar — a versão do Expo já mudou uma vez neste projeto.
+8. **Mobile First / Native / Expo:** qualquer API nova usada (armazenamento, rede, notificações) deve ser conferida contra `https://docs.expo.dev/versions/v56.0.0/` antes de usar — a versão do Expo já mudou uma vez neste projeto (e mudou de novo: hoje a referência é `v57.0.0`, ver o final deste documento).
 
 ## Stack de testes (a ser adicionada — o projeto hoje não tem nenhuma)
 
@@ -204,3 +206,15 @@ O plano do Web usa `axios` com `withCredentials: true` (cookie de sessão via `P
 - [ ] Testado manualmente em Expo Go num dispositivo/emulador, não só `expo start --web`.
 - [ ] Nenhuma dependência nova além da estritamente necessária (`axios`, `jest-expo`, `@testing-library/react-native` — só na Sprint 0).
 - [ ] Nenhum bloqueio conhecido (Sprint 2 #1/#2, Sprint 3 categorias) foi "resolvido" silenciosamente sem registrar a decisão tomada no PR.
+
+---
+
+## Atualização de dependências concluída — Expo SDK 57 (2026-09-29)
+
+> **Resolvido:** as duas notas acima (Sprint 0 e "Nota separada") registravam o desalinhamento entre `expo` e os pacotes React Native/React instalados. Nesta data o projeto foi atualizado para `expo@~57.0.26`, React Native `0.86.3`, React e React DOM `19.2.3`, `react-native-web@~0.21.0` e os módulos Expo do SDK 57 — exatamente as versões que o SDK declara. `npx expo install --check` responde `Dependencies are up to date`.
+
+- **Documentação de referência:** `AGENTS.md` passou a apontar para `https://docs.expo.dev/versions/v57.0.0/`; as menções a `v56.0.0` nesta página descrevem a execução original do plano, em agosto de 2026.
+- **Requisitos de ambiente:** Node.js mínimo `22.13` (campo `engines` do `package.json`), iOS `16.4+` e Xcode `26.4+` para compilar iOS. Builds nativas feitas no SDK anterior precisam ser recompiladas; para o Expo Go é preciso a versão compatível com o SDK 57.
+- **Sem mudança de código de app:** os módulos usados (`expo-secure-store`, `expo-linear-gradient`, `expo-sharing`, `expo-asset`, `expo-file-system/legacy`, `expo-status-bar`, `react-native-safe-area-context`, `react-native-screens`, `react-native-svg`, `react-native-webview` e `@react-navigation/*`) continuam disponíveis no SDK 57 e nenhuma tela foi alterada por causa da atualização.
+- **Testes:** a suíte segue no preset `@react-native/jest-preset` (`react-native/jest-preset.js` no RN 0.86 é apenas um *shim* que reexporta esse pacote e orienta a migração), com `117` testes verdes em `35` suítes. A adoção de `jest-expo` continua fora de escopo, como decidido na Sprint 0.
+- **Verificações executadas:** `npx expo install --check`, `npm test -- --runInBand`, `npx expo export --platform all` (web, iOS e Android) e `npx expo-doctor` — 20 de 21 checagens aprovadas; a única falha é a consulta ao React Native Directory (`Directory check failed with unexpected server response`), indisponível no momento da checagem e sem relação com o projeto.

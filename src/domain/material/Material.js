@@ -8,8 +8,11 @@ export function materialFromDTO(dto) {
     category: dto.categoria || '',
     author: dto.autor || 'BabyBuddy',
     publishedAt: dto.dataPublicacao || null,
-    coverUrl: absoluteUrl(dto.capa),
-    pdfUrl: absoluteUrl(dto.arquivo),
+    coverUrl: absoluteUrl(dto.imagem || dto.capa),
+    contentUrl: absoluteUrl(dto.conteudoUrl || dto.arquivo),
+    contentType: dto.conteudoMimeType || dto.mimeType || 'application/pdf',
+    pdfUrl: absoluteUrl(dto.pdfUrl !== undefined ? dto.pdfUrl
+      : (!dto.mimeType || dto.mimeType === 'application/pdf' ? dto.arquivo : '')),
     legacyPath: dto.link || '',
   }
 }

@@ -22,7 +22,13 @@ export async function loadArticleFile(material) {
   }
   const directory = `${FileSystem.cacheDirectory}articles/`
   await FileSystem.makeDirectoryAsync(directory, { intermediates: true })
-  const uri = `${directory}${Date.now()}-${pdfName(material)}`
+  // Android's share dialog can close before the receiving app reads the attachment.
+  // Retain shared cache files for 24h, then collect them on the next download.
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000
+  const names = await FileSystem.readDirectoryAsync(directory).catch(() => [])
+  await Promise.all(names.filter(name => /^\d+-/.test(name) && Number(name.split('-')[0]) < cutoff)
+    .map(name => FileSystem.deleteAsync(directory + name, { idempotent: true }).catch(() => {})))
+  const uri = `${directory}${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${pdfName(material)}`
   try {
     const result = await FileSystem.downloadAsync(material.pdfUrl, uri)
     if (result.status !== 200) throw new Error('Não foi possível carregar o PDF.')
@@ -36,7 +42,7 @@ export async function loadArticleFile(material) {
 }
 
 export async function releaseArticleFile(file) {
-  if (file?.uri) await FileSystem.deleteAsync(file.uri, { idempotent: true }).catch(() => {})
+  if (file?.uri && !file.shared) await FileSystem.deleteAsync(file.uri, { idempotent: true }).catch(() => {})
 }
 
 export async function saveArticleFile(file, material) {
@@ -72,5 +78,6 @@ export async function shareArticleFile(file, material, dialogTitle = 'Selecione 
     return
   }
   if (!await Sharing.isAvailableAsync()) throw new Error('O compartilhamento não está disponível neste dispositivo.')
+  file.shared = true
   await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle })
 }
