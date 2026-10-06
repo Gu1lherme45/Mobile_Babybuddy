@@ -1,6 +1,10 @@
 import UsuarioRepository from '../../infrastructure/repositories/UsuarioRepository'
 
 function extrairMensagemErro(err) {
+  if (err.response?.status === 409) {
+    return err.response?.data?.error
+      || 'Este e-mail já está cadastrado. Entre com sua conta ou use outro e-mail.'
+  }
   const data = err.response?.data
   if (typeof data === 'string' && data) return data
   if (data?.error) return data.error

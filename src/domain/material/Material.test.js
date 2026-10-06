@@ -8,7 +8,8 @@ describe('materialFromDTO', () => {
       .toEqual(expect.objectContaining({ contentUrl: 'http://api.test/conteudo', contentType: 'text/html', pdfUrl: 'http://api.test/pdf', coverUrl: 'http://api.test/imagem' }))
   })
   it('não trata HTML de uma API antiga como PDF', () => {
-    expect(materialFromDTO({ arquivo: '/conteudo', mimeType: 'text/html' }).pdfUrl).toBe('')
+    expect(materialFromDTO({ id: 2, arquivo: '/conteudo', mimeType: 'text/html' }).pdfUrl)
+      .toBe('http://api.test/api/materiais/2/pdf')
     expect(materialFromDTO({ arquivo: '/conteudo', pdfUrl: null }).pdfUrl).toBe('')
   })
   it('mapeia o contrato público e transforma URLs relativas em absolutas', () => {
@@ -18,6 +19,13 @@ describe('materialFromDTO', () => {
         title: 'Guia',
         coverUrl: 'http://api.test/api/materiais/2/capa',
         pdfUrl: 'http://api.test/api/materiais/2/conteudo',
+      }))
+  })
+  it('falls back to the generated PDF endpoint when content exists', () => {
+    expect(materialFromDTO({ id: 7, conteudoUrl: '/api/materiais/7/conteudo', pdfUrl: null }))
+      .toEqual(expect.objectContaining({
+        contentUrl: 'http://api.test/api/materiais/7/conteudo',
+        pdfUrl: 'http://api.test/api/materiais/7/pdf',
       }))
   })
 })

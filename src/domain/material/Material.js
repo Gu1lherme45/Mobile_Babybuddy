@@ -1,6 +1,12 @@
 import { API_URL } from '../../config'
 
 export function materialFromDTO(dto) {
+  const contentUrl = absoluteUrl(dto.conteudoUrl || dto.arquivo)
+  const pdfPath = dto.pdfUrl !== undefined
+    ? dto.pdfUrl
+    : (!dto.mimeType || dto.mimeType === 'application/pdf' ? dto.arquivo : '')
+  // The backend generates a PDF on demand for articles that have readable content.
+  const generatedPdfPath = pdfPath || (contentUrl && dto.id ? `/api/materiais/${dto.id}/pdf` : '')
   return {
     id: dto.id,
     title: dto.titulo || '',
@@ -9,10 +15,9 @@ export function materialFromDTO(dto) {
     author: dto.autor || 'BabyBuddy',
     publishedAt: dto.dataPublicacao || null,
     coverUrl: absoluteUrl(dto.imagem || dto.capa),
-    contentUrl: absoluteUrl(dto.conteudoUrl || dto.arquivo),
+    contentUrl,
     contentType: dto.conteudoMimeType || dto.mimeType || 'application/pdf',
-    pdfUrl: absoluteUrl(dto.pdfUrl !== undefined ? dto.pdfUrl
-      : (!dto.mimeType || dto.mimeType === 'application/pdf' ? dto.arquivo : '')),
+    pdfUrl: absoluteUrl(generatedPdfPath),
     legacyPath: dto.link || '',
   }
 }
