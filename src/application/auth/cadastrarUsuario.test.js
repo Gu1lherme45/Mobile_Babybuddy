@@ -19,6 +19,12 @@ describe('cadastrarUsuario', () => {
     await expect(cadastrarUsuario('Lorena', 'lorena@a.com', '123')).rejects.toThrow('Usuário já existe')
   })
 
+  it('orienta a entrar quando a API informa que o e-mail já está cadastrado', async () => {
+    UsuarioRepository.criar.mockRejectedValue({ response: { status: 409, data: { error: 'E-mail já cadastrado' } } })
+    await expect(cadastrarUsuario('Maria', 'maria@gmail.com', 'Senha123!'))
+      .rejects.toThrow('Este e-mail já está cadastrado. Entre com sua conta ou use outro e-mail.')
+  })
+
   it('cai para mensagem genérica quando o backend não manda detalhe', async () => {
     UsuarioRepository.criar.mockRejectedValue({ response: { data: {} } })
     await expect(cadastrarUsuario('Lorena', 'lorena@a.com', '123')).rejects.toThrow('Erro ao cadastrar')

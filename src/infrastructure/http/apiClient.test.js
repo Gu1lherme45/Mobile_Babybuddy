@@ -6,7 +6,11 @@ describe('apiClient', () => {
     expect(apiClient.defaults.baseURL).toBe(API_URL)
   })
 
-  it('tem exatamente um interceptor de request (o de auth)', () => {
+  it('tem um interceptor de request para autenticação', () => {
     expect(apiClient.interceptors.request.handlers.filter(Boolean)).toHaveLength(1)
+  })
+
+  it('tenta os outros IPs do host quando a conexão falha sem resposta HTTP', () => {
+    expect(apiClient.interceptors.response.handlers.filter(Boolean)).toHaveLength(2)
   })
 })

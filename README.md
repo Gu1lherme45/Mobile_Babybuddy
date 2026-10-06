@@ -22,20 +22,28 @@ Verificações: `npx expo install --check`, `npx expo-doctor`,
 
 A URL da API pode ser definida com a variável pública do Expo
 `EXPO_PUBLIC_API_URL`. Ela contém apenas um endereço de rede e não deve conter
-senhas, tokens ou outros segredos.
+senhas, tokens ou outros segredos. Sem essa variável, `app.config.js` descobre
+os endereços IPv4 não internos do computador que inicia o Expo e os inclui na
+configuração do app. O cliente tenta os endereços locais automaticamente e
+guarda o primeiro que responder à API.
 
 Os valores padrão, quando a variável não existe, são:
 
 - Expo Web e simulador iOS: `http://localhost:8080`
 - Emulador Android: `http://10.0.2.2:8080`
 
-Para executar em um celular físico:
+Para executar em um celular físico, conecte celular e computador à mesma rede
+Wi-Fi e inicie o backend e o Expo normalmente. A lista descoberta é tentada
+automaticamente. Interfaces de VPN, Docker e máquinas virtuais também podem
+ser descobertas; se uma delas for selecionada sem alcançar o celular, defina
+`EXPO_PUBLIC_API_URL` explicitamente com o IPv4 da rede Wi-Fi.
+
+Configuração manual, quando necessária:
 
 1. Inicie o backend na porta `8080`.
 2. Conecte o celular e o computador na mesma rede Wi-Fi.
-3. Descubra o IPv4 do computador com `ipconfig`.
-4. Copie `.env.example` para `.env.local` e substitua o IP do exemplo.
-5. Inicie o app com `npm start` e faça um reload completo no Expo Go.
+3. Defina `EXPO_PUBLIC_API_URL` com o IPv4 do computador.
+4. Inicie ou reinicie o app com `npm start` e faça um reload completo no Expo Go.
 
 Exemplo:
 
