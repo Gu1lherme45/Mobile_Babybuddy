@@ -1,10 +1,10 @@
-import { API_URL } from '../../config'
+import { getApiUrl } from '../../config'
 
 export function materialFromDTO(dto) {
   const contentUrl = absoluteUrl(dto.conteudoUrl || dto.arquivo)
   const pdfPath = dto.pdfUrl !== undefined
     ? dto.pdfUrl
-    : (!dto.mimeType || dto.mimeType === 'application/pdf' ? dto.arquivo : '')
+    : (!dto.conteudoMimeType && (!dto.mimeType || dto.mimeType === 'application/pdf') ? dto.arquivo : '')
   // The backend generates a PDF on demand for articles that have readable content.
   const generatedPdfPath = pdfPath || (contentUrl && dto.id ? `/api/materiais/${dto.id}/pdf` : '')
   return {
@@ -18,11 +18,12 @@ export function materialFromDTO(dto) {
     contentUrl,
     contentType: dto.conteudoMimeType || dto.mimeType || 'application/pdf',
     pdfUrl: absoluteUrl(generatedPdfPath),
+    downloadHeaders: dto.downloadHeaders || {},
     legacyPath: dto.link || '',
   }
 }
 
 export function absoluteUrl(path) {
   if (!path) return ''
-  return /^https?:\/\//i.test(path) ? path : `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`
+  return /^https?:\/\//i.test(path) ? path : `${getApiUrl()}${path.startsWith('/') ? '' : '/'}${path}`
 }

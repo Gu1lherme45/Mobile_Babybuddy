@@ -55,6 +55,10 @@ export function initializeApiUrls(hostIps = [], configuredUrl = '') {
 export function setApiUrl(url) {
   const normalizedUrl = normalizeApiUrl(url)
   if (!normalizedUrl) throw new Error('A URL do backend está vazia.')
-  if (API_URLS.includes(normalizedUrl)) return
-  API_URLS.push(normalizedUrl)
+  const remaining = API_URLS.filter((candidate) => candidate !== normalizedUrl)
+  API_URLS.splice(0, API_URLS.length, normalizedUrl, ...remaining)
+}
+
+export function getApiUrl() {
+  return API_URLS[0]
 }

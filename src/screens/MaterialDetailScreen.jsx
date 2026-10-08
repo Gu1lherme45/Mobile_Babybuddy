@@ -9,6 +9,7 @@ import ArticleHtml from '../components/ArticleHtml'
 import { loadArticleHtml } from '../components/articleDocument'
 import { saveArticleFile, shareArticleFile } from '../infrastructure/material/articleFile'
 import { createArticleFileSession } from '../infrastructure/material/articleFileSession'
+import { getCredentials } from '../infrastructure/http/credentialsStore'
 
 export default function MaterialDetailScreen({ route, navigation }) {
   const [material, setMaterial] = useState(null)
@@ -35,7 +36,10 @@ export default function MaterialDetailScreen({ route, navigation }) {
   useEffect(() => {
     let active = true
     const abort = new AbortController()
-    const session = material?.pdfUrl ? createArticleFileSession(material) : null
+    const session = material?.pdfUrl ? createArticleFileSession({
+      ...material,
+      downloadHeaders: authHeaders(),
+    }) : null
     sessionRef.current = session
     setFile(null)
     setHtml('')
@@ -110,6 +114,14 @@ export default function MaterialDetailScreen({ route, navigation }) {
 }
 
 function formatDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date) }
+
+function authHeaders() {
+  const credentials = getCredentials()
+  if (!credentials) return {}
+  const bytes = new TextEncoder().encode(`${credentials.username}:${credentials.password}`)
+  const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+  return { Authorization: `Basic ${globalThis.btoa(binary)}` }
+}
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFF' }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF5F8' }, content: { padding: 18, paddingBottom: 40 },

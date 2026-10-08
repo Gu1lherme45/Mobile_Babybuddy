@@ -22,6 +22,7 @@ import PrivacyScreen from '../screens/PrivacyScreen'
 import TermsScreen from '../screens/TermsScreen'
 import MaterialsScreen from '../screens/MaterialsScreen'
 import MaterialDetailScreen from '../screens/MaterialDetailScreen'
+import MaterialCreateScreen from '../screens/MaterialCreateScreen'
 
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
@@ -89,6 +90,7 @@ function AppNavigator() {
             <Stack.Screen name="Terms" component={TermsScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="Materials" component={MaterialsScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="MaterialDetail" component={MaterialDetailScreen} options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="MaterialCreate" component={MaterialCreateScreen} options={{ animation: 'slide_from_right' }} />
           </>
         )}
       </Stack.Navigator>
