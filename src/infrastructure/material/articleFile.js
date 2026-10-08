@@ -7,9 +7,13 @@ export function pdfName(material) {
 }
 
 export async function loadArticleFile(material) {
+  const pdfUrl = requireHttpUrl(material?.pdfUrl)
   if (Platform.OS === 'web') {
-    const response = await fetch(material.pdfUrl)
-    if (!response.ok) throw new Error('Não foi possível carregar o PDF.')
+    const response = await fetch(pdfUrl, { headers: material.downloadHeaders })
+    if (!response.ok) throw new Error(await responseError(response, 'Não foi possível carregar o PDF.'))
+    if (!response.headers.get('content-type')?.toLowerCase().includes('application/pdf')) {
+      throw new Error('O servidor não retornou um PDF válido para este artigo.')
+    }
     const blob = new Blob([await response.arrayBuffer()], { type: 'application/pdf' })
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -20,7 +24,9 @@ export async function loadArticleFile(material) {
     if (!base64.startsWith('JVBER')) throw new Error('O arquivo recebido não é um PDF válido.')
     return { base64, blob }
   }
-  const directory = `${FileSystem.cacheDirectory}articles/`
+  const cacheDirectory = FileSystem.cacheDirectory || FileSystem.documentDirectory
+  if (!cacheDirectory) throw new Error('O armazenamento local não está disponível neste dispositivo.')
+  const directory = `${cacheDirectory.replace(/\/$/, '')}/articles/`
   await FileSystem.makeDirectoryAsync(directory, { intermediates: true })
   // Android's share dialog can close before the receiving app reads the attachment.
   // Retain shared cache files for 24h, then collect them on the next download.
@@ -30,8 +36,12 @@ export async function loadArticleFile(material) {
     .map(name => FileSystem.deleteAsync(directory + name, { idempotent: true }).catch(() => {})))
   const uri = `${directory}${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${pdfName(material)}`
   try {
-    const result = await FileSystem.downloadAsync(material.pdfUrl, uri)
-    if (result.status !== 200) throw new Error('Não foi possível carregar o PDF.')
+    const result = await FileSystem.downloadAsync(pdfUrl, uri, { headers: material.downloadHeaders })
+    if (result.status !== 200) throw new Error(await responseErrorFromUri(result, uri, 'Não foi possível carregar o PDF.'))
+    const responseType = result.headers?.['Content-Type'] || result.headers?.['content-type'] || ''
+    if (!responseType.toLowerCase().includes('application/pdf')) {
+      throw new Error('O servidor não retornou um PDF válido para este artigo.')
+    }
     const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
     if (!base64.startsWith('JVBER')) throw new Error('O arquivo recebido não é um PDF válido.')
     return { uri, base64 }
@@ -39,6 +49,32 @@ export async function loadArticleFile(material) {
     await FileSystem.deleteAsync(uri, { idempotent: true })
     throw error
   }
+}
+
+function requireHttpUrl(value) {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) {
+    throw new Error('O endereço do PDF deste artigo está ausente ou inválido. Atualize a lista e tente novamente.')
+  }
+  return value
+}
+
+async function responseError(response, fallback) {
+  try {
+    const data = await response.json()
+    return data.message || data.error || fallback
+  } catch (_) { return fallback }
+}
+
+async function responseErrorFromUri(response, uri, fallback) {
+  const contentType = response.headers?.['Content-Type'] || response.headers?.['content-type'] || ''
+  if (contentType.toLowerCase().includes('application/json')) {
+    try {
+      const body = await FileSystem.readAsStringAsync(uri)
+      const data = JSON.parse(body)
+      return data.message || data.error || fallback
+    } catch (_) {}
+  }
+  return fallback
 }
 
 export async function releaseArticleFile(file) {
@@ -60,6 +96,7 @@ export async function saveArticleFile(file, material) {
   if (Platform.OS === 'android') {
     const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
     if (!permission.granted) return false
+    if (!permission.directoryUri) throw new Error('A pasta selecionada não está disponível.')
     const destination = await FileSystem.StorageAccessFramework.createFileAsync(permission.directoryUri, pdfName(material), 'application/pdf')
     await FileSystem.writeAsStringAsync(destination, file.base64, { encoding: FileSystem.EncodingType.Base64 })
     return true

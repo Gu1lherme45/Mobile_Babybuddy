@@ -5,8 +5,13 @@ import { useFocusEffect } from '@react-navigation/native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Icon } from '../components/Icon'
 import { listarMateriais } from '../application/material'
+import { useApp } from '../context/AppContext'
+
+const ADMIN_EMAIL = 'administrador@babybuddy.com.br'
 
 export default function MaterialsScreen({ navigation }) {
+  const { currentUser } = useApp()
+  const isAdmin = currentUser?.email?.trim().toLowerCase() === ADMIN_EMAIL
   const [materials, setMaterials] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -27,7 +32,8 @@ export default function MaterialsScreen({ navigation }) {
     <LinearGradient colors={['#EC407A', '#C0255B']} style={styles.header}>
       <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()} accessibilityLabel="Voltar"><Icon name="back" color="#fff" size={22} /></TouchableOpacity>
       <View style={styles.headerCopy}><Text style={styles.eyebrow}>CONTEÚDO CONFIÁVEL</Text><Text style={styles.title}>Artigos BabyBuddy</Text>
-        <Text style={styles.subtitle}>Informação para acompanhar cada fase com mais segurança.</Text></View>
+        <Text style={styles.subtitle}>Informação para acompanhar cada fase com mais segurança.</Text>
+        {isAdmin && <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('MaterialCreate')} accessibilityRole="button"><Text style={styles.createButtonText}>+ Cadastrar artigo</Text></TouchableOpacity>}</View>
     </LinearGradient>
     {loading ? <View style={styles.center}><ActivityIndicator size="large" color="#EC407A" /><Text style={styles.stateText}>Carregando artigos...</Text></View>
       : <FlatList data={materials} keyExtractor={(item) => String(item.id)} contentContainerStyle={styles.list}
@@ -48,6 +54,7 @@ export default function MaterialsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8F0F5' }, header: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 24, flexDirection: 'row', gap: 12 },
+  createButton: { alignSelf: 'flex-start', marginTop: 13, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }, createButtonText: { color: '#B62561', fontSize: 13, fontWeight: '900' },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,.18)', alignItems: 'center', justifyContent: 'center' },
   headerCopy: { flex: 1 }, eyebrow: { color: 'rgba(255,255,255,.75)', fontWeight: '900', fontSize: 10, letterSpacing: 1.1 }, title: { color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 4 },
   subtitle: { color: 'rgba(255,255,255,.82)', fontSize: 12, lineHeight: 17, marginTop: 4 }, list: { padding: 16, paddingBottom: 30, gap: 14 },

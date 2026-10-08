@@ -1,6 +1,6 @@
 import { materialFromDTO } from './Material'
 
-jest.mock('../../config', () => ({ API_URL: 'http://api.test' }))
+jest.mock('../../config', () => ({ getApiUrl: () => 'http://api.test' }))
 
 describe('materialFromDTO', () => {
   it('separa HTML de leitura do PDF e prioriza a imagem do artigo', () => {
@@ -27,5 +27,18 @@ describe('materialFromDTO', () => {
         contentUrl: 'http://api.test/api/materiais/7/conteudo',
         pdfUrl: 'http://api.test/api/materiais/7/pdf',
       }))
+  })
+  it('prioriza conteudoMimeType do backend atual sobre mimeType legado', () => {
+    expect(materialFromDTO({
+      id: 8,
+      arquivo: '/api/materiais/8/conteudo',
+      mimeType: 'application/pdf',
+      conteudoMimeType: 'text/html',
+      pdfUrl: '/api/materiais/8/pdf',
+    })).toEqual(expect.objectContaining({
+      contentType: 'text/html',
+      contentUrl: 'http://api.test/api/materiais/8/conteudo',
+      pdfUrl: 'http://api.test/api/materiais/8/pdf',
+    }))
   })
 })
