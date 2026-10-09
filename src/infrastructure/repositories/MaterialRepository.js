@@ -1,9 +1,10 @@
 import apiClient from '../http/apiClient'
 import { API_URL } from '../../config'
 import { File } from 'expo-file-system'
+import { fetch as expoFetch } from 'expo/fetch'
 import { Platform } from 'react-native'
 import { getCredentials } from '../http/credentialsStore'
-import { assertValidFileUri, createArticleTextFile, createMetadataJsonFile } from '../material/articleUploadFile'
+import { assertValidFileUri, createArticleTextFile } from '../material/articleUploadFile'
 
 const MaterialRepository = {
   async listPublic() {
@@ -26,7 +27,7 @@ const MaterialRepository = {
     return data
   },
 
-  async create({ title, description, category, author, content, file }) {
+  async create({ title, description, category, author, content, file, image }) {
     const credentials = getCredentials()
     if (!credentials) throw new Error('Entre com a conta administradora para publicar um artigo.')
 
@@ -46,7 +47,6 @@ const MaterialRepository = {
       const uploadFile = new File(uri)
       const fileInfo = uploadFile.info()
       if (!fileInfo.exists || !(fileInfo.size ?? uploadFile.size)) throw new Error('O arquivo selecionado não está acessível. Selecione-o novamente.')
-      console.log('[UPLOAD] URI:', uri)
       if (!file.mimeType) throw new Error('O arquivo selecionado não informa um tipo MIME válido.')
       articlePart = { uri, name: file.name, type: file.mimeType }
     } else if (Platform.OS === 'web') {
@@ -55,9 +55,6 @@ const MaterialRepository = {
     } else {
       const prepared = createArticleTextFile(content, title)
       const uri = assertValidFileUri(prepared.uri)
-      console.log('[UPLOAD] URI:', uri)
-      console.log('[UPLOAD] MIME:', 'text/markdown')
-      console.log('[UPLOAD] NAME:', prepared.name)
       articlePart = { uri, name: prepared.name, type: 'text/markdown' }
     }
 
@@ -73,19 +70,23 @@ const MaterialRepository = {
         form.append('arquivo', articleBlob, articlePart.name)
       }
     } else {
-      // The endpoint binds `dados` as a JSON @RequestPart. Native FileSystemUploadTask
-      // parameters cannot set a per-part MIME type, so FormData sends a typed JSON file part.
-      const metadataFile = createMetadataJsonFile({
-        titulo: title.trim(), descricao: description.trim(), categoria: category.trim(), autor: author.trim(), link: '',
-      })
-      form.append('dados', { uri: metadataFile.uri, name: metadataFile.name, type: metadataFile.mimeType })
-      form.append('arquivo', articlePart)
+      // Expo's fetch implementation streams File instances correctly in native FormData.
+      form.append('dados', new Blob([metadata], { type: 'application/json' }), 'dados.json')
+      form.append('arquivo', new File(articlePart.uri))
     }
-    console.log('[UPLOAD] MIME:', articlePart.type)
-    console.log('[UPLOAD] NAME:', articlePart.name)
-    console.log('[UPLOAD] uploadType:', 'MULTIPART')
+    if (image) {
+      const imageUri = assertValidFileUri(image.uri)
+      if (Platform.OS === 'web') {
+        const imageResponse = await fetch(imageUri)
+        if (!imageResponse.ok) throw new Error('A imagem selecionada não pôde ser lida pelo navegador.')
+        form.append('imagem', new Blob([await imageResponse.blob()], { type: image.mimeType }), image.name)
+      } else {
+        form.append('imagem', new File(imageUri))
+      }
+    }
     // Do not set Content-Type: fetch/FormData must generate the multipart boundary.
-    const result = await fetch(endpoint, { method: 'POST', headers: { Authorization: auth }, body: form })
+    const send = Platform.OS === 'web' ? globalThis.fetch : expoFetch
+    const result = await send(endpoint, { method: 'POST', headers: { Authorization: auth }, body: form })
     const response = { status: result.status, body: await result.text() }
 
     if (response.status < 200 || response.status >= 300) {

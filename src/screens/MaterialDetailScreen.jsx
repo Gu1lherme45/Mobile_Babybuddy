@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Icon } from '../components/Icon'
@@ -45,7 +45,7 @@ export default function MaterialDetailScreen({ route, navigation }) {
     setHtml('')
     setPrepared(false)
     setPdfError('')
-    if (material?.contentUrl) {
+    if (material?.contentUrl && (material.contentType === 'application/pdf' || material.contentType.startsWith('text/'))) {
       const isPdf = material.contentType === 'application/pdf'
       const task = isPdf && session ? session.get() : loadArticleHtml(material.contentUrl, abort.signal)
       task.then(value => {
@@ -104,11 +104,12 @@ export default function MaterialDetailScreen({ route, navigation }) {
             <TouchableOpacity style={[styles.button, styles.shareButton, busy && styles.disabled]} disabled={!!busy} onPress={() => handleAction('share')} accessibilityRole="button"><Text style={styles.buttonText}>{busy === 'share' ? 'Preparando compartilhamento…' : 'Compartilhar no WhatsApp'}</Text></TouchableOpacity>
           </View>
           <Text style={styles.stateText}>Para enviar o PDF, selecione o WhatsApp no menu de compartilhamento.</Text>
-        </> : <View style={styles.notice}><Text style={styles.noticeTitle}>PDF ainda não publicado</Text><Text style={styles.stateText}>O download ficará disponível quando o PDF for publicado.</Text></View>}
+        </> : material.contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? <TouchableOpacity style={styles.button} onPress={() => Linking.openURL(material.contentUrl)} accessibilityRole="button"><Text style={styles.buttonText}>Baixar {material.fileName || 'documento DOCX'}</Text></TouchableOpacity> : null}
         <View style={styles.reader}>{pdfError ? <View style={styles.notice}><Text style={styles.stateText} accessibilityRole="alert">{pdfError}</Text><TouchableOpacity style={styles.back} onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.backText}>Tentar novamente</Text></TouchableOpacity></View>
+          : material.contentType.startsWith('image/') ? <Image source={{ uri: material.contentUrl }} style={styles.articleImage} resizeMode="contain" accessibilityLabel={material.title} />
           : html ? <ArticleHtml html={html} onError={() => setPdfError('Não foi possível exibir o artigo. Tente novamente.')} />
           : file ? <ArticlePdf file={file} />
-          : material.contentUrl ? <View style={styles.notice}><ActivityIndicator color="#EC407A" /><Text style={styles.stateText}>Carregando artigo…</Text></View>
+          : material.contentUrl && material.contentType.startsWith('text/') ? <View style={styles.notice}><ActivityIndicator color="#EC407A" /><Text style={styles.stateText}>Carregando artigo…</Text></View>
           : <Text style={styles.stateText}>Conteúdo ainda não publicado.</Text>}</View></>}
   </ScrollView></SafeAreaView>
 }
@@ -124,7 +125,7 @@ function authHeaders() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFF' }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF5F8' }, content: { padding: 18, paddingBottom: 40 },
+  safe: { flex: 1, backgroundColor: '#FFF' }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF5F8' }, content: { padding: 18, paddingBottom: 40 }, articleImage: { width: '100%', minHeight: 220, height: 320 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingVertical: 8, marginBottom: 12 }, backText: { color: '#9B315F', fontSize: 13, fontWeight: '800' },
   cover: { width: '100%', height: 190, borderRadius: 26, backgroundColor: '#FFF5F8' }, placeholder: { alignItems: 'center', justifyContent: 'center' },
   actions: { gap: 10, marginVertical: 16 }, shareButton: { backgroundColor: '#237D50', marginTop: 0 }, disabled: { opacity: 0.5 }, reader: { marginTop: 18, minHeight: 140 },

@@ -19,8 +19,13 @@ describe('cadastrarMaterial', () => {
     expect(MaterialRepository.create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Guia', category: 'Saúde', author: 'BabyBuddy' }))
   })
 
-  it('aceita somente extensões suportadas para envio de arquivo', async () => {
-    await expect(cadastrarMaterial({ title: 'Guia', category: 'Saúde', author: 'BabyBuddy', file: { name: 'guia.docx' } }))
-      .rejects.toThrow('PDF, HTML ou Markdown')
+  it('aceita formatos documentais de material e rejeita extensões não suportadas', async () => {
+    MaterialRepository.create.mockResolvedValue({ id: 5 })
+    for (const name of ['guia.pdf', 'guia.md', 'foto.jpg', 'foto.png', 'guia.docx']) {
+      await expect(cadastrarMaterial({ title: 'Guia', category: 'Saúde', author: 'BabyBuddy', file: { name } }))
+        .resolves.toEqual({ id: 5 })
+    }
+    await expect(cadastrarMaterial({ title: 'Guia', category: 'Saúde', author: 'BabyBuddy', file: { name: 'guia.exe' } }))
+      .rejects.toThrow('JPG, PNG, Markdown, PDF ou DOCX')
   })
 })

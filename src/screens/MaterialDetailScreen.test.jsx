@@ -52,12 +52,19 @@ it('cancelar o salvamento não apresenta sucesso', async () => {
   expect(Alert.alert).not.toHaveBeenCalled()
 })
 
-it('mantém leitura disponível quando não existe PDF', async () => {
+it('mantém leitura do artigo disponível quando não há PDF para download', async () => {
   obterMaterial.mockResolvedValue({ ...material, pdfUrl: '' })
   const screen = render(<MaterialDetailScreen {...props} />)
-  await screen.findByText('PDF ainda não publicado')
+  await screen.findByText('Guia')
   expect(loadArticleHtml).toHaveBeenCalled()
   expect(screen.queryByText('Baixar PDF')).toBeNull()
+})
+
+it('mostra imagem enviada como conteúdo do artigo sem tentar lê-la como texto', async () => {
+  obterMaterial.mockResolvedValue({ ...material, contentType: 'image/png', pdfUrl: '' })
+  const screen = render(<MaterialDetailScreen {...props} />)
+  await screen.findByText('Guia')
+  expect(loadArticleHtml).not.toHaveBeenCalled()
 })
 
 it('não abre o compartilhamento se a tela fechar durante o download', async () => {

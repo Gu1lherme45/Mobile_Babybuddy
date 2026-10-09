@@ -59,7 +59,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', paddingVertical: 32, gap: 6 },
+  header: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16, gap: 6 },
   avatarWrap: {
     width: 84, height: 84, borderRadius: 42,
     backgroundColor: 'rgba(255,255,255,0.22)',
@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
   },
-  userName:  { fontSize: 18, fontWeight: '900', color: '#fff' },
-  userEmail: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  userName:  { fontSize: 18, fontWeight: '900', color: '#fff', textAlign: 'center', flexShrink: 1 },
+  userEmail: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600', textAlign: 'center', flexShrink: 1 },
   body: { padding: 16, paddingBottom: 30 },
   section: { fontSize: 10, fontWeight: '900', color: '#A07080', letterSpacing: 1, marginTop: 16, marginBottom: 8, paddingLeft: 4 },
   menuItem: {
@@ -82,6 +82,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5F8', alignItems: 'center', justifyContent: 'center',
   },
   menuIconDanger: { backgroundColor: '#fff0f3' },
-  menuLabel: { flex: 1, fontSize: 13, fontWeight: '800', color: '#2D1220' },
+  menuLabel: { flex: 1, flexShrink: 1, fontSize: 13, fontWeight: '800', color: '#2D1220' },
   menuLabelDanger: { color: '#E53935' },
 })

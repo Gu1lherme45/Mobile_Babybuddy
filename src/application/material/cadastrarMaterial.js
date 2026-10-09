@@ -19,8 +19,8 @@ export default async function cadastrarMaterial(input) {
   if (!title || !category || !author) {
     throw new Error('Preencha título, categoria e autor.')
   }
-  if (input.file && !/\.(pdf|html?|md|markdown)$/i.test(input.file.name || '')) {
-    throw new Error('Selecione um arquivo PDF, HTML ou Markdown.')
+  if (input.file && !/\.(pdf|md|markdown|jpe?g|png|docx)$/i.test(input.file.name || '')) {
+    throw new Error('Selecione um arquivo JPG, PNG, Markdown, PDF ou DOCX.')
   }
   if (!input.file && !input.content?.trim()) {
     throw new Error('Escreva o conteúdo do artigo ou selecione um arquivo.')

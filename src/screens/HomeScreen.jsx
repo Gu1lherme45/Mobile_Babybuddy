@@ -145,10 +145,10 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, gap: 12 },
+  header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerHello: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '700' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
+  headerHello: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '700', flexShrink: 1 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900', flexShrink: 1 },
   bellBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 22, padding: 14, gap: 8,
   },
   progressTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.88)' },
+  progressLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.88)', flex: 1, flexShrink: 1 },
   progressWeeks: { fontSize: 11, fontWeight: '900', color: '#fff' },
   progressBg: { height: 9, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 50, overflow: 'hidden' },
   progressBar: { height: '100%', backgroundColor: '#fff', borderRadius: 50 },
@@ -173,17 +173,17 @@ const styles = StyleSheet.create({
   emptyDataText: { flex: 1, fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
   body: { flex: 1 },
   sectionTitle: { fontSize: 13, fontWeight: '900', color: '#2D1220', marginBottom: 10, marginTop: 4 },
-  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  sectionLink: { fontSize: 11, fontWeight: '800', color: '#EC407A' },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  sectionLink: { fontSize: 11, fontWeight: '800', color: '#EC407A', flexShrink: 1, textAlign: 'right' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   card: {
     backgroundColor: '#fff', borderRadius: 22, padding: 16,
-    width: '47%', gap: 10,
+    flexGrow: 1, flexBasis: '42%', minWidth: 0, gap: 10,
     shadowColor: '#EC407A', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   cardIcon: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  cardLabel: { fontSize: 12, fontWeight: '900', color: '#2D1220', lineHeight: 16 },
+  cardLabel: { fontSize: 12, fontWeight: '900', color: '#2D1220', lineHeight: 16, flexShrink: 1 },
   listCard: {
     backgroundColor: '#fff', borderRadius: 18, padding: 12,
     flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8,

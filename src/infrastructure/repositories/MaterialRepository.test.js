@@ -1,9 +1,11 @@
 import apiClient from '../http/apiClient'
 import MaterialRepository from './MaterialRepository'
 import { clearCredentials, setCredentials } from '../http/credentialsStore'
+import { fetch as expoFetch } from 'expo/fetch'
 
 jest.mock('../http/apiClient', () => ({ get: jest.fn(), post: jest.fn(), defaults: { baseURL: 'https://api.test' } }))
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { cache: { uri: 'file:///cache' } } }))
+jest.mock('expo/fetch', () => ({ fetch: jest.fn() }))
 
 describe('MaterialRepository', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -25,19 +27,19 @@ describe('MaterialRepository', () => {
     const { File } = require('expo-file-system')
     const { Platform } = require('react-native')
     const originalPlatform = Platform.OS
-    const originalFetch = global.fetch
     const originalFormData = global.FormData
     const forms = []
     setCredentials('administrador@babybuddy.com.br', 'senha')
     Platform.OS = 'android'
     global.FormData = class MockFormData {
       constructor() { this.parts = []; forms.push(this) }
-      append(name, value) { this.parts.push([name, value]) }
+      append(name, value, filename) { this.parts.push([name, value, filename]) }
     }
-    global.fetch = jest.fn().mockResolvedValue({ status: 201, text: async () => '{"id":7}' })
+    expoFetch.mockResolvedValue({ status: 201, text: async () => '{"id":7}' })
     File.mockImplementation((...parts) => {
       const uri = parts.map(part => typeof part === 'string' ? part : part.uri).join('/')
-      return { uri, name: uri.split('/').pop(), size: 50, info: () => ({ exists: true, size: 50 }), create() {}, write() {} }
+      const name = uri.split('/').pop()
+      return { uri, name, type: 'application/pdf', size: 50, info: () => ({ exists: true, size: 50 }), create() {}, write() {} }
     })
 
     try {
@@ -47,15 +49,15 @@ describe('MaterialRepository', () => {
       })).resolves.toEqual({ id: 7 })
       expect(File).toHaveBeenCalledWith('file:///cache/guia.pdf')
       expect(forms[0].parts[0][0]).toBe('dados')
-      expect(forms[0].parts[0][1]).toEqual(expect.objectContaining({ name: 'dados.json', type: 'application/json' }))
-      expect(forms[0].parts[1]).toEqual(['arquivo', { uri: 'file:///cache/guia.pdf', name: 'guia.pdf', type: 'application/pdf' }])
-      expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/materiais', expect.objectContaining({
+      expect(forms[0].parts[0][1]).toEqual(expect.objectContaining({ type: 'application/json' }))
+      expect(forms[0].parts[0][2]).toBe('dados.json')
+      expect(forms[0].parts[1]).toEqual(['arquivo', expect.objectContaining({ uri: 'file:///cache/guia.pdf', name: 'guia.pdf' })])
+      expect(expoFetch).toHaveBeenCalledWith('https://api.test/api/materiais', expect.objectContaining({
         method: 'POST', headers: { Authorization: expect.stringMatching(/^Basic /) }, body: forms[0],
       }))
-      expect(global.fetch.mock.calls[0][1].headers['Content-Type']).toBeUndefined()
+      expect(expoFetch.mock.calls[0][1].headers['Content-Type']).toBeUndefined()
     } finally {
       Platform.OS = originalPlatform
-      global.fetch = originalFetch
       global.FormData = originalFormData
     }
   })

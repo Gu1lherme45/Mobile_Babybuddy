@@ -48,14 +48,3 @@ export function createArticleTextFile(content, title) {
   if (!info.exists || !file.size) throw new Error('Não foi possível preparar o texto do artigo para envio.')
   return { file, uri, name, size: file.size }
 }
-
-export function createMetadataJsonFile(metadata) {
-  const name = 'dados.json'
-  const file = new File(Paths.cache, `article-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`)
-  file.create({ intermediates: true })
-  file.write(JSON.stringify(metadata))
-  const uri = assertValidFileUri(file.uri)
-  const info = file.info()
-  if (!info.exists || !(info.size ?? file.size)) throw new Error('Não foi possível preparar os dados do artigo para envio.')
-  return { file, uri, name, mimeType: 'application/json' }
-}
