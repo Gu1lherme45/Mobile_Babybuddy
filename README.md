@@ -58,3 +58,12 @@ indicam IP incorreto, dispositivos em redes diferentes ou bloqueio da porta
 `8080` pelo firewall.
 
 Em builds de produção, use uma URL pública com HTTPS.
+
+### Aplicativo em máquina virtual
+
+O aplicativo mobile é executado em ambiente separado e envia/consulta materiais
+diretamente pela API. Configure `EXPO_PUBLIC_API_URL` na VM com a origem HTTP(S)
+alcançável do backend publicado; `localhost` e `10.0.2.2` apontam para a própria
+VM/emulador e não para o computador onde o backend está instalado. O backend
+retorna rotas relativas para os arquivos, e o app as resolve usando essa mesma
+origem. Não monte nem compartilhe uma pasta de arquivos entre a VM e o backend.

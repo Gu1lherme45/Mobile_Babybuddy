@@ -6,7 +6,8 @@ export function materialFromDTO(dto) {
     ? dto.pdfUrl
     : (!dto.conteudoMimeType && (!dto.mimeType || dto.mimeType === 'application/pdf') ? dto.arquivo : '')
   // The backend generates a PDF on demand for articles that have readable content.
-  const generatedPdfPath = pdfPath || (contentUrl && dto.id ? `/api/materiais/${dto.id}/pdf` : '')
+  const contentType = dto.conteudoMimeType || dto.mimeType || 'application/pdf'
+  const generatedPdfPath = pdfPath || (contentUrl && dto.id && contentType.startsWith('text/') ? `/api/materiais/${dto.id}/pdf` : '')
   return {
     id: dto.id,
     title: dto.titulo || '',
@@ -16,7 +17,8 @@ export function materialFromDTO(dto) {
     publishedAt: dto.dataPublicacao || null,
     coverUrl: absoluteUrl(dto.imagem || dto.capa),
     contentUrl,
-    contentType: dto.conteudoMimeType || dto.mimeType || 'application/pdf',
+    contentType,
+    fileName: dto.nomeArquivo || '',
     pdfUrl: absoluteUrl(generatedPdfPath),
     downloadHeaders: dto.downloadHeaders || {},
     legacyPath: dto.link || '',

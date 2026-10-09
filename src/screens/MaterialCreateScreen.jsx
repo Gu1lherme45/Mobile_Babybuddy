@@ -8,6 +8,18 @@ import { copyPickedArticleToCache } from '../infrastructure/material/articleUplo
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024
 const MAX_TEXT_BYTES = 5 * 1024 * 1024
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+function mimeForName(name) {
+  const lower = name.toLowerCase()
+  if (lower.endsWith('.pdf')) return 'application/pdf'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  if (lower.endsWith('.md') || lower.endsWith('.markdown')) return 'text/markdown'
+  return ''
+}
 
 function notify(message) {
   if (Platform.OS === 'web') globalThis.alert(message)
@@ -28,6 +40,7 @@ export default function MaterialCreateScreen({ navigation }) {
   const [author, setAuthor] = useState(currentUser?.nome || 'BabyBuddy')
   const [content, setContent] = useState('')
   const [file, setFile] = useState(null)
+  const [image, setImage] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const loadCategories = async () => {
@@ -56,20 +69,19 @@ export default function MaterialCreateScreen({ navigation }) {
 
   const chooseFile = async () => {
     try {
-      const result = await File.pickFileAsync({ mimeTypes: ['application/pdf', 'text/html', 'text/markdown'] })
+      const result = await File.pickFileAsync({ mimeTypes: ['application/pdf', 'text/markdown', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] })
       if (result.canceled) return
       const picked = result.result
       if (!picked) throw new Error('O seletor não retornou um arquivo. Tente selecioná-lo novamente.')
-      const isPdf = /\.pdf$/i.test(picked.name || '')
-      if (picked.size > (isPdf ? MAX_PDF_BYTES : MAX_TEXT_BYTES)) {
-        notify(isPdf ? 'O PDF deve ter no máximo 25 MB.' : 'O arquivo de texto deve ter no máximo 5 MB.')
+      const name = picked.name || 'artigo'
+      const extensionMime = mimeForName(name)
+      if (!extensionMime) throw new Error('O arquivo deve ser JPG, PNG, Markdown, PDF ou DOCX.')
+      const isText = extensionMime === 'text/markdown'
+      const maxBytes = isText ? MAX_TEXT_BYTES : extensionMime.startsWith('image/') ? MAX_IMAGE_BYTES : extensionMime === 'application/pdf' ? MAX_PDF_BYTES : MAX_DOCUMENT_BYTES
+      if (picked.size > maxBytes) {
+        notify(isText ? 'O Markdown deve ter no máximo 5 MB.' : extensionMime.startsWith('image/') ? 'A imagem deve ter no máximo 5 MB.' : 'O arquivo deve ter no máximo 25 MB.')
         return
       }
-      const name = picked.name || 'artigo'
-      if (!/\.(pdf|html?|md|markdown)$/i.test(name)) {
-        throw new Error('O arquivo deve ser PDF, HTML ou Markdown.')
-      }
-      const extensionMime = isPdf ? 'application/pdf' : /\.html?$/i.test(name) ? 'text/html' : 'text/markdown'
       const mimeType = picked.type && picked.type !== 'application/octet-stream' ? picked.type : extensionMime
       if (mimeType !== extensionMime) throw new Error('O tipo MIME do arquivo não corresponde à extensão informada.')
       const cachedFile = await copyPickedArticleToCache(picked)
@@ -79,10 +91,28 @@ export default function MaterialCreateScreen({ navigation }) {
     }
   }
 
+  const chooseImage = async () => {
+    try {
+      const result = await File.pickFileAsync({ mimeTypes: ['image/jpeg', 'image/png'] })
+      if (result.canceled) return
+      const picked = result.result
+      if (!picked) throw new Error('O seletor não retornou uma imagem.')
+      const type = mimeForName(picked.name || '')
+      if (!['image/jpeg', 'image/png'].includes(type)) throw new Error('A imagem deve ser JPG ou PNG.')
+      if (picked.size > MAX_IMAGE_BYTES) throw new Error('A imagem deve ter no máximo 5 MB.')
+      const mimeType = picked.type && picked.type !== 'application/octet-stream' ? picked.type : type
+      if (mimeType !== type) throw new Error('O tipo da imagem não corresponde à extensão informada.')
+      const cachedImage = await copyPickedArticleToCache(picked)
+      setImage({ ...cachedImage, mimeType })
+    } catch (error) {
+      notify(error.message || 'Não foi possível selecionar a imagem.')
+    }
+  }
+
   const submit = async () => {
     setSaving(true)
     try {
-      await cadastrarMaterial({ title, description, category, author, content, file })
+      await cadastrarMaterial({ title, description, category, author, content, file, image })
       notify('Artigo publicado com sucesso.')
       navigation.goBack()
     } catch (error) {
@@ -122,8 +152,11 @@ export default function MaterialCreateScreen({ navigation }) {
       <View style={styles.divider}><View style={styles.rule} /><Text style={styles.or}>OU</Text><View style={styles.rule} /></View>
       <Text style={styles.label}>Conteúdo do artigo</Text>
       <TextInput value={content} onChangeText={setContent} style={[styles.input, styles.body]} placeholder="Escreva o artigo aqui. A formatação Markdown é aceita." multiline textAlignVertical="top" />
-      <TouchableOpacity style={styles.fileButton} onPress={chooseFile} accessibilityRole="button"><Text style={styles.fileButtonText}>{file ? 'Trocar arquivo' : 'Selecionar PDF, HTML ou Markdown'}</Text></TouchableOpacity>
+      <TouchableOpacity style={styles.fileButton} onPress={chooseFile} accessibilityRole="button"><Text style={styles.fileButtonText}>{file ? 'Trocar arquivo' : 'Selecionar JPG, PNG, Markdown, PDF ou DOCX'}</Text></TouchableOpacity>
       {file ? <Text style={styles.fileName}>{file.name}</Text> : null}
+      <Text style={styles.label}>Imagem do artigo (opcional)</Text>
+      <TouchableOpacity style={styles.fileButton} onPress={chooseImage} accessibilityRole="button"><Text style={styles.fileButtonText}>{image ? 'Trocar imagem' : 'Selecionar imagem JPG ou PNG'}</Text></TouchableOpacity>
+      {image ? <Text style={styles.fileName}>{image.name}</Text> : null}
       <TouchableOpacity style={[styles.submit, saving && styles.disabled]} onPress={submit} disabled={saving} accessibilityRole="button">
         {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Publicar artigo</Text>}
       </TouchableOpacity>

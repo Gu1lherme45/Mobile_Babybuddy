@@ -77,6 +77,7 @@ export default function CalendarScreen({ navigation }) {
       </LinearGradient>
 
       {/* Mini calendário */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
       <View style={styles.calCard}>
         <View style={styles.calGrid}>
           {DS.map((d, i) => <Text key={i} style={styles.dayLabel}>{d}</Text>)}
@@ -113,7 +114,7 @@ export default function CalendarScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 20 }}>
+        <View style={{ paddingHorizontal: 14 }}>
         {shown === null ? (
           <View style={styles.hint}>
             <Text style={styles.hintTitle}>Selecione um dia</Text>
@@ -143,6 +144,7 @@ export default function CalendarScreen({ navigation }) {
             </View>
           ))
         )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   )
@@ -150,14 +152,14 @@ export default function CalendarScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingVertical: 16 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 4 },
   navBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
   },
-  monthTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  monthTitle: { fontSize: 18, fontWeight: '900', color: '#fff', flexShrink: 1, textAlign: 'center', marginHorizontal: 8 },
   calCard: {
-    backgroundColor: '#fff', margin: 14, borderRadius: 24, padding: 14,
+    backgroundColor: '#fff', margin: 14, borderRadius: 24, padding: 10,
     shadowColor: '#EC407A', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4,
   },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -167,13 +169,13 @@ const styles = StyleSheet.create({
   dayNum: { fontSize: 13, color: '#2D1220', fontWeight: '600' },
   dayNumSel: { color: '#fff', fontWeight: '900' },
   dotSmall: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#EC407A', marginTop: 2 },
-  controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, marginBottom: 8 },
+  controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, paddingHorizontal: 14, marginBottom: 8 },
   filterBtn: {
     borderRadius: 50, borderWidth: 1.5, borderColor: '#F5DAE4',
-    paddingHorizontal: 14, paddingVertical: 6,
+    paddingHorizontal: 10, paddingVertical: 6, flexShrink: 1,
   },
   filterBtnActive: { backgroundColor: '#EC407A', borderColor: '#EC407A' },
-  filterBtnText: { fontSize: 12, fontWeight: '900', color: '#EC407A' },
+  filterBtnText: { fontSize: 12, fontWeight: '900', color: '#EC407A', flexShrink: 1 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: '#EC407A', borderRadius: 50, paddingHorizontal: 14, paddingVertical: 8,

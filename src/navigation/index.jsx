@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { useApp } from '../context/AppContext'
 import { View, ActivityIndicator } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Icon } from '../components/Icon'
 
 import LoginScreen from '../screens/LoginScreen'
@@ -28,6 +29,7 @@ const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
 
 function TabNavigator() {
+  const insets = useSafeAreaInsets()
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -38,9 +40,9 @@ function TabNavigator() {
           backgroundColor: '#fff',
           borderTopColor: '#F5DAE4',
           borderTopWidth: 1,
-          paddingBottom: 6,
+          paddingBottom: Math.max(insets.bottom, 6),
           paddingTop: 6,
-          height: 60,
+          height: 60 + Math.max(insets.bottom, 6),
         },
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700' },
         tabBarIcon: ({ color, size }) => {

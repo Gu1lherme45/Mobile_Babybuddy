@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: '#fff' },
   scroll: { flexGrow: 1 },
   header: {
-    padding: 36, paddingBottom: 40,
+    paddingHorizontal: 24, paddingTop: 28, paddingBottom: 32,
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
     alignItems: 'center', gap: 8,
   },
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   title:    { fontSize: 22, color: '#fff', fontWeight: '900', letterSpacing: 0.5 },
   subtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  body:     { flex: 1, padding: 28, gap: 10 },
+  body:     { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 24, gap: 10, width: '100%', maxWidth: 560, alignSelf: 'center' },
   errorBox: {
     backgroundColor: '#fff0f3', borderWidth: 1.5, borderColor: '#FFB7CD',
     borderRadius: 12, padding: 10,
