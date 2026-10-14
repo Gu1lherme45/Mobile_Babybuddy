@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
 import { Icon } from '../components/Icon'
+import QuestionarioResumo from '../components/QuestionarioResumo'
 
 function MenuItem({ icon, label, onPress, danger }) {
   return (
@@ -42,6 +43,9 @@ export default function ProfileScreen({ navigation }) {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.body}>
+        <Text style={styles.section}>MINHA SAÚDE</Text>
+        <QuestionarioResumo usuarioId={currentUser?.id} />
+
         <Text style={styles.section}>MINHA CONTA</Text>
         <MenuItem icon="edit"   label="Dados Pessoais"     onPress={() => navigation.navigate('PersonalData')} />
         <MenuItem icon="shield" label="Alterar Senha"      onPress={() => navigation.navigate('ChangePassword')} />

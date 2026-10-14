@@ -6,10 +6,25 @@ import { useApp } from '../context/AppContext'
 
 jest.mock('../context/AppContext', () => ({ useApp: jest.fn() }))
 jest.mock('../components/Icon', () => ({ Icon: () => null }))
+jest.mock('../components/QuestionarioResumo', () => {
+  const React = require('react')
+  const { Text } = require('react-native')
+  return ({ usuarioId }) => React.createElement(Text, null, `questionário da usuária ${usuarioId}`)
+})
 jest.mock('expo-linear-gradient', () => {
   const React = require('react')
   const { View } = require('react-native')
   return { LinearGradient: (props) => React.createElement(View, props) }
+})
+
+describe('ProfileScreen — questionário de saúde', () => {
+  it('mostra o resumo do questionário da usuária logada', () => {
+    useApp.mockReturnValue({ currentUser: { id: 3, nome: 'Lorena', email: 'lorena@a.com' }, logout: jest.fn() })
+    const { getByText } = render(<ProfileScreen navigation={{ navigate: jest.fn() }} />)
+
+    expect(getByText('MINHA SAÚDE')).toBeTruthy()
+    expect(getByText('questionário da usuária 3')).toBeTruthy()
+  })
 })
 
 describe('ProfileScreen — sair', () => {
