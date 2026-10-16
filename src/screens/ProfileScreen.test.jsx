@@ -5,6 +5,7 @@ import ProfileScreen from './ProfileScreen'
 import { useApp } from '../context/AppContext'
 
 jest.mock('../context/AppContext', () => ({ useApp: jest.fn() }))
+jest.mock('../context/QuestionarioContext', () => ({ useQuestionario: () => ({ pending: false }) }))
 jest.mock('../components/Icon', () => ({ Icon: () => null }))
 jest.mock('expo-linear-gradient', () => {
   const React = require('react')

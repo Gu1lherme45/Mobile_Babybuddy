@@ -24,6 +24,7 @@ import TermsScreen from '../screens/TermsScreen'
 import MaterialsScreen from '../screens/MaterialsScreen'
 import MaterialDetailScreen from '../screens/MaterialDetailScreen'
 import MaterialCreateScreen from '../screens/MaterialCreateScreen'
+import QuestionarioScreen from '../screens/QuestionarioScreen'
 
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
@@ -60,7 +61,7 @@ function TabNavigator() {
 }
 
 function AppNavigator() {
-  const { currentUser, authLoading } = useApp()
+  const { currentUser, authLoading, questionnaireOnboarding } = useApp()
 
   if (authLoading) {
     return (
@@ -72,7 +73,11 @@ function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Navigator
+        key={currentUser?.id || 'guest'}
+        initialRouteName={currentUser ? (questionnaireOnboarding ? 'Questionario' : 'Welcome') : 'Login'}
+        screenOptions={{ headerShown: false, animation: 'fade' }}
+      >
         {!currentUser ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -82,6 +87,7 @@ function AppNavigator() {
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Main" component={TabNavigator} />
+            <Stack.Screen name="Questionario" component={QuestionarioScreen} options={{ animation: 'slide_from_right', gestureEnabled: false }} />
             <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="AddReminder" component={AddReminderScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="PersonalData" component={PersonalDataScreen} options={{ animation: 'slide_from_right' }} />

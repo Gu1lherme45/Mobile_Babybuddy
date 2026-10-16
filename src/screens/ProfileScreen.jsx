@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
 import { Icon } from '../components/Icon'
+import { useQuestionario } from '../context/QuestionarioContext'
 
 function MenuItem({ icon, label, onPress, danger }) {
   return (
@@ -18,6 +19,7 @@ function MenuItem({ icon, label, onPress, danger }) {
 
 export default function ProfileScreen({ navigation }) {
   const { currentUser, logout } = useApp()
+  const { pending } = useQuestionario()
 
   function handleLogout() {
     if (Platform.OS === 'web') {
@@ -44,6 +46,7 @@ export default function ProfileScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={styles.section}>MINHA CONTA</Text>
         <MenuItem icon="edit"   label="Dados Pessoais"     onPress={() => navigation.navigate('PersonalData')} />
+        <MenuItem icon="heart" label={pending ? 'Questionário de saúde · Pendente' : 'Questionário de saúde'} onPress={() => navigation.navigate('Questionario')} />
         <MenuItem icon="shield" label="Alterar Senha"      onPress={() => navigation.navigate('ChangePassword')} />
 
         <Text style={styles.section}>INFORMAÇÕES</Text>
