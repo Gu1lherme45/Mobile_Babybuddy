@@ -13,8 +13,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 export default function LoginScreen({ navigation }) {
   const { login, authLoading, authError, setAuthError } = useApp()
 
-  const [email, setEmail]       = useState('')
-  const [pass, setPass]         = useState('')
+  // Conta de testes preenchida apenas durante o desenvolvimento.
+  const [email, setEmail]       = useState(__DEV__ ? 'administrador@babybuddy.com.br' : '')
+  const [pass, setPass]         = useState(__DEV__ ? 'BabyBuddy2026' : '')
   const [showPass, setShowPass] = useState(false)
   const [emailErr, setEmailErr] = useState('')
   const [passErr, setPassErr]   = useState('')

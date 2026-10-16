@@ -3,6 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
 import { Icon } from '../components/Icon'
+import { useQuestionario } from '../context/QuestionarioContext'
+import QuestionarioReminder from '../components/QuestionarioReminder'
 
 function fmtDate(iso) {
   if (!iso) return ''
@@ -12,6 +14,7 @@ function fmtDate(iso) {
 
 export default function NotificationsScreen({ navigation }) {
   const { reminders, events } = useApp()
+  const { pending } = useQuestionario()
 
   const upcoming = [
     ...reminders.filter(r => !r.done).map(r => ({
@@ -37,7 +40,8 @@ export default function NotificationsScreen({ navigation }) {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 20 }}>
-        {upcoming.length === 0 ? (
+        <QuestionarioReminder navigation={navigation} />
+        {upcoming.length === 0 && !pending ? (
           <View style={styles.empty}>
             <Icon name="bell" color="#C9A8B5" size={40} />
             <Text style={styles.emptyTitle}>Sem notificações</Text>

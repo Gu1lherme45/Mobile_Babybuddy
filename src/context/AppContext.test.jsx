@@ -48,6 +48,7 @@ describe('AppContext — autenticação', () => {
     expect(SecureStorage.setItem).toHaveBeenCalledWith('bb_email', 'lorena@a.com')
     expect(SecureStorage.setItem).toHaveBeenCalledWith('bb_password', '123')
     expect(result.current.currentUser).toEqual(USUARIO)
+    expect(result.current.questionnaireOnboarding).toBe(false)
   })
 
   it('login: credenciais inválidas não autenticam e expõem authError', async () => {
@@ -76,6 +77,7 @@ describe('AppContext — autenticação', () => {
     expect(cadastrarUsuario).toHaveBeenCalledWith('Lorena', 'lorena@a.com', '123')
     expect(autenticarUsuario).toHaveBeenCalledWith('lorena@a.com', '123')
     expect(result.current.currentUser).toEqual(USUARIO)
+    expect(result.current.questionnaireOnboarding).toBe(true)
   })
 
   it('restauração de sessão no boot: credenciais salvas válidas autenticam sem exigir novo login', async () => {

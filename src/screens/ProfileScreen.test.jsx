@@ -3,8 +3,10 @@ import { fireEvent, render } from '@testing-library/react-native'
 import { Alert, Platform } from 'react-native'
 import ProfileScreen from './ProfileScreen'
 import { useApp } from '../context/AppContext'
+import { useQuestionario } from '../context/QuestionarioContext'
 
 jest.mock('../context/AppContext', () => ({ useApp: jest.fn() }))
+jest.mock('../context/QuestionarioContext', () => ({ useQuestionario: jest.fn(() => ({ pending: false })) }))
 jest.mock('../components/Icon', () => ({ Icon: () => null }))
 jest.mock('../components/QuestionarioResumo', () => {
   const React = require('react')
@@ -24,6 +26,17 @@ describe('ProfileScreen — questionário de saúde', () => {
 
     expect(getByText('MINHA SAÚDE')).toBeTruthy()
     expect(getByText('questionário da usuária 3')).toBeTruthy()
+  })
+
+  it.each([true, false])('mantém o resumo e permite abrir o formulário com pendência %s', pending => {
+    useApp.mockReturnValue({ currentUser: { id: 3 }, logout: jest.fn() })
+    useQuestionario.mockReturnValueOnce({ pending })
+    const navigate = jest.fn()
+    const { getByText } = render(<ProfileScreen navigation={{ navigate }} />)
+
+    expect(getByText('questionário da usuária 3')).toBeTruthy()
+    fireEvent.press(getByText(pending ? 'Questionário de saúde · Pendente' : 'Questionário de saúde'))
+    expect(navigate).toHaveBeenCalledWith('Questionario')
   })
 })
 

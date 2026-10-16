@@ -19,6 +19,7 @@ export function AppProvider({ children }) {
   const [credentials, setCredentials] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  const [questionnaireOnboarding, setQuestionnaireOnboarding] = useState(false)
 
   // Dados locais (salvos por email do usuário)
   const [profile, setProfileRaw] = useState({ name: '', weeks: '', due: '', doctor: '', hospital: '', weight: '', height: '', blood: '', allergies: '' })
@@ -103,13 +104,14 @@ export function AppProvider({ children }) {
       .catch(() => {})
   }
 
-  async function login(email, password) {
+  async function login(email, password, afterRegistration = false) {
     setAuthLoading(true)
     setAuthError('')
     try {
       const usuario = await autenticarUsuario(email, password)
       await SecureStorage.setItem('bb_email', email)
       await SecureStorage.setItem('bb_password', password)
+      setQuestionnaireOnboarding(afterRegistration)
       setCurrentUser(usuario)
       setCredentials({ email, password })
       await loadUserData(usuario)
@@ -127,7 +129,7 @@ export function AppProvider({ children }) {
     setAuthError('')
     try {
       await cadastrarUsuario(nome, email, password)
-      return await login(email, password)
+      return await login(email, password, true)
     } catch (err) {
       setAuthError(err.message || 'Erro ao criar conta. Tente novamente.')
       return false
@@ -142,6 +144,7 @@ export function AppProvider({ children }) {
     clearCredentials()
     setCurrentUser(null)
     setCredentials(null)
+    setQuestionnaireOnboarding(false)
     setProfileRaw({ name: '', weeks: '', due: '', doctor: '', hospital: '', weight: '', height: '', blood: '', allergies: '' })
     setReminders([])
     setEvents([])
@@ -153,6 +156,7 @@ export function AppProvider({ children }) {
 
   async function deleteCurrentAccount() {
     await excluirContaUseCase(currentUser?.id)
+    await SecureStorage.deleteItem(`bb_anamnese_v1_${currentUser?.id}`).catch(() => {})
     await logout()
   }
 
@@ -217,7 +221,7 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      currentUser, credentials, authLoading, authError, setAuthError,
+      currentUser, credentials, authLoading, authError, setAuthError, questionnaireOnboarding,
       login, register, logout, deleteCurrentAccount, changePassword,
       profile, setProfile,
       reminders, addReminder, deleteReminder, toggleReminder,

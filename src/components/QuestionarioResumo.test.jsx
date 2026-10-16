@@ -38,7 +38,7 @@ describe('QuestionarioResumo', () => {
 
     const { findByText, getByText } = render(<QuestionarioResumo usuarioId={3} />)
 
-    expect(await findByText('Respondido no site em 14/10/2026')).toBeTruthy()
+    expect(await findByText('Respondido em 14/10/2026')).toBeTruthy()
     expect(obterQuestionarioDoUsuario).toHaveBeenCalledWith(3)
     const [ano, mes, dia] = dataPrevistaParto.split('-')
     expect(getByText('24ª semana')).toBeTruthy()

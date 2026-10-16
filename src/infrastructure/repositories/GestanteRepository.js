@@ -1,12 +1,12 @@
 import apiClient from '../http/apiClient'
 
-async function criar(gestante) {
-  const response = await apiClient.post('/api/gestantes', gestante)
+async function criar(gestante, ...requestOptions) {
+  const response = await apiClient.post('/api/gestantes', gestante, ...requestOptions)
   return response.data
 }
 
-async function listar() {
-  const response = await apiClient.get('/api/gestantes')
+async function listar(...requestOptions) {
+  const response = await apiClient.get('/api/gestantes', ...requestOptions)
   return response.data
 }
 
@@ -15,8 +15,8 @@ async function buscarPorId(id) {
   return response.data
 }
 
-async function atualizar(id, gestante) {
-  const response = await apiClient.put(`/api/gestantes/${id}`, gestante)
+async function atualizar(id, gestante, ...requestOptions) {
+  const response = await apiClient.put(`/api/gestantes/${id}`, gestante, ...requestOptions)
   return response.data
 }
 

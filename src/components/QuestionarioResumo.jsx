@@ -66,7 +66,7 @@ export default function QuestionarioResumo({ usuarioId }) {
   } else if (!questionario) {
     conteudo = (
       <Text style={styles.message}>
-        Você ainda não respondeu o questionário de saúde. Responda pelo site do BabyBuddy e suas respostas aparecem aqui.
+        Você ainda não respondeu o questionário de saúde. Responda pelo aplicativo ou pelo site do BabyBuddy e suas respostas aparecem aqui.
       </Text>
     )
   } else {
@@ -87,7 +87,7 @@ export default function QuestionarioResumo({ usuarioId }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Questionário de saúde</Text>
           {!!questionario?.dataPreenchimento && (
-            <Text style={styles.subtitle}>Respondido no site em {fmtDate(questionario.dataPreenchimento)}</Text>
+            <Text style={styles.subtitle}>Respondido em {fmtDate(questionario.dataPreenchimento)}</Text>
           )}
         </View>
       </View>

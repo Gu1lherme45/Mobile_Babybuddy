@@ -1,0 +1,5 @@
+simulation: babybuddy-anamnese
+routing: path
+mocks:
+  - routeKey: babybuddy
+    path: ../mocks/babybuddy/config.yaml

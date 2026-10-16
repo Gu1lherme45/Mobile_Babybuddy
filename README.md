@@ -51,6 +51,11 @@ Exemplo:
 EXPO_PUBLIC_API_URL=http://192.168.0.25:8080
 ```
 
+O `.env.local` tem prioridade sobre o `.env`. Se o app continuar usando um IP
+antigo após editar o `.env`, remova ou atualize `EXPO_PUBLIC_API_URL` no
+`.env.local`. Depois, faça um reload completo do app ou da página no navegador.
+Veja a [ordem de carregamento das variáveis no Expo](https://docs.expo.dev/guides/environment-variables/#using-multiple-env-files-to-define-separate-environments).
+
 No Expo Web, o navegador aplica CORS. O backend do BabyBuddy libera por
 padrão as origens locais do Expo nas portas `8081` e `19006`. Em Android e iOS
 nativos, CORS não é aplicado pelo navegador; falhas de conexão normalmente

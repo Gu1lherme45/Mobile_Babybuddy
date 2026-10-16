@@ -3,6 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useApp } from '../context/AppContext'
 import { Icon } from '../components/Icon'
+import { useQuestionario } from '../context/QuestionarioContext'
+import QuestionarioReminder from '../components/QuestionarioReminder'
 
 function fmtDate(iso) {
   if (!iso) return ''
@@ -12,9 +14,10 @@ function fmtDate(iso) {
 
 export default function HomeScreen({ navigation }) {
   const { currentUser, profile, reminders, events } = useApp()
+  const { pending } = useQuestionario()
   const name = profile.name || currentUser?.nome || null
   const wk = profile.weeks ? parseInt(profile.weeks) : null
-  const pct = wk ? Math.round((wk / 40) * 100) : 0
+  const pct = wk ? Math.min(100, Math.round((wk / 40) * 100)) : 0
 
   const actions = [
     { ic: 'cal',   lb: 'Novo Evento',   screen: 'AddEvent',    colors: ['#EC407A', '#FF6FAD'] },
@@ -33,8 +36,9 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.headerHello}>{name ? `Olá, ${name}!` : 'Olá!'}</Text>
             <Text style={styles.headerTitle}>Como você está?</Text>
           </View>
-          <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity style={styles.bellBtn} accessibilityRole="button" accessibilityLabel={pending ? 'Notificações: questionário de saúde pendente' : 'Notificações'} onPress={() => navigation.navigate('Notifications')}>
             <Icon name="bell" color="#fff" size={19} />
+            {pending && <View style={styles.notificationBadge} />}
           </TouchableOpacity>
         </View>
 
@@ -51,7 +55,7 @@ export default function HomeScreen({ navigation }) {
               {[
                 { v: `${wk}ª`, l: 'semana' },
                 { v: wk <= 13 ? '1º' : wk <= 26 ? '2º' : '3º', l: 'trimestre' },
-                { v: String(40 - wk), l: 'restantes' },
+                { v: String(Math.max(0, 40 - wk)), l: 'restantes' },
               ].map((item, i) => (
                 <View key={i} style={{ alignItems: 'center' }}>
                   <Text style={styles.statVal}>{item.v}</Text>
@@ -70,6 +74,7 @@ export default function HomeScreen({ navigation }) {
       </LinearGradient>
 
       <ScrollView style={styles.body} contentContainerStyle={{ padding: 16, paddingBottom: 20 }}>
+        <QuestionarioReminder navigation={navigation} />
         {/* Ações Rápidas */}
         <Text style={styles.sectionTitle}>Ações Rápidas</Text>
         <View style={styles.grid}>
@@ -154,6 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
+  notificationBadge: { position: 'absolute', right: 2, top: 2, width: 11, height: 11, borderRadius: 6, backgroundColor: '#FFE19A', borderWidth: 1.5, borderColor: '#C0255B' },
   progressCard: {
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderRadius: 22, padding: 14, gap: 8,
